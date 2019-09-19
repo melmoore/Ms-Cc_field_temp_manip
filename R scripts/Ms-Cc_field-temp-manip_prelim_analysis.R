@@ -395,6 +395,8 @@ height_stage_plot + geom_histogram(stat="count", position = "dodge"
 
 #creating a dataframe of location counts so that I can calculate proportions for plotting
 
+#HEIGHT
+
 #subset to only relevant columns
 ftm_loc_cnt <- ftm_lng %>% select(bug_id, plot_id, treat_para, treat_heat, cen_num, cen_pres, cen_time, cen_date, 
                                   cen_stage, cen_loc, height, leaf_surf, shade)
@@ -428,6 +430,41 @@ hght_cnt$height <- factor(hght_cnt$height, levels=c("h", "m", "l"))
 hstage_op_bar <- ggplot(hght_cnt, aes(x=height, y=obs_prop, fill=treat_para))
 hstage_op_bar + geom_bar(stat="identity", position = "dodge" 
 )+facet_wrap(treat_heat~cen_stage)
+
+
+
+
+#LEAF SURFACE
+
+#counts of location data for height on plant
+lfsrf_cnt <- ftm_loc_cnt %>% count(treat_para, treat_heat, plot_id, cen_stage, leaf_surf)
+View(lfsrf_cnt)
+
+#put into wide format to calculate proportions
+lfsrf_cnt <- spread(lfsrf_cnt, leaf_surf, n, fill=0)
+lfsrf_cnt$ud <- NULL
+
+#creating column with total observed height locations for each plot, treat_heat, treat_para and stage combo
+lfsrf_cnt$obs_totn <- lfsrf_cnt$ed + lfsrf_cnt$un + lfsrf_cnt$up
+
+#creating prop from total number of observations from that plot, treat_heat, treat_para and stage
+lfsrf_cnt$ed_obs_prop <- lfsrf_cnt$ed / lfsrf_cnt$obs_totn
+lfsrf_cnt$un_obs_prop <- lfsrf_cnt$un / lfsrf_cnt$obs_totn
+lfsrf_cnt$up_obs_prop <- lfsrf_cnt$up / lfsrf_cnt$obs_totn
+
+
+#put back into long format
+lfsrf_cnt <- gather(lfsrf_cnt, leaf_surf, obs_prop, ed_obs_prop, un_obs_prop, up_obs_prop)
+lfsrf_cnt$leaf_surf <- gsub("_obs_prop", "", lfsrf_cnt$leaf_surf)
+
+#make leaf_surf a factor so I can order it up, ed, un
+lfsrf_cnt$leaf_surf <- factor(lfsrf_cnt$leaf_surf, levels=c("up", "ed", "un"))
+
+#plotting prop of observations of leaf surface by treat_heat, treat_para and stage
+lfsrf_stage_op_bar <- ggplot(lfsrf_cnt, aes(x=leaf_surf, y=obs_prop, fill=treat_para))
+lfsrf_stage_op_bar + geom_bar(stat="identity", position = "dodge" 
+)+facet_wrap(treat_heat~cen_stage)
+
 
 
 
