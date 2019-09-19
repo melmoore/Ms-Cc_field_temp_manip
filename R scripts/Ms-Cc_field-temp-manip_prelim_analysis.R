@@ -335,6 +335,10 @@ ftm_l3 <- left_join(ftm_lpres, ftm_l1)
 ftm_lng <- left_join(ftm_l3, ftm_l2)
 
 
+#separate cen_loc column into 3 columns: height, leaf_surf, shade
+ftm_lng <- ftm_lng %>% separate(cen_loc, c("height", "leaf_surf", "shade"), remove=FALSE)
+
+
 #--------------------------------
 
 #location data plots
@@ -375,21 +379,57 @@ loc_barplot+geom_bar(position = "fill", stat="count"
 )+facet_wrap(plot_id~treat_heat)
 
 
-
-#------------------------
-
-#separate cen_loc column into 3 columns: height, leaf_surf, shade
-
-ftm_lng <- ftm_lng %>% separate(cen_loc, c("height", "leaf_surf", "shade"), remove=FALSE)
-
+#plot hist of height on plant, by stage and para treat
 
 #remove em stage (usually in cups), 6 stage and 2 stage to simplify figure (assume the 2 is a typo)
 ftm_lng <- subset(ftm_lng, cen_stage!="2" & cen_stage!="6" & cen_stage!="em")
 
 
-#plot height on plant, by stage and para treat
 height_stage_plot <- ggplot(ftm_lng, aes(x=height, fill=treat_para))
 height_stage_plot + geom_histogram(stat="count", position = "dodge"
 )+facet_wrap(treat_heat~cen_stage)
+
+
+
+#--------------------------------
+
+#creating a dataframe of location counts so that I can calculate proportions for plotting
+
+#subset to only relevant columns
+ftm_loc_cnt <- ftm_lng %>% select(bug_id, plot_id, treat_para, treat_heat, cen_num, cen_pres, cen_time, cen_date, 
+                                  cen_stage, cen_loc, height, leaf_surf, shade)
+
+#counts of location data for height on plant
+hght_cnt <- ftm_loc_cnt %>% count(treat_para, treat_heat, plot_id, cen_stage, height)
+
+
+#put into wide format
+hght_cnt <- spread(hght_cnt, height, n, fill=0)
+hght_cnt$u <- NULL
+
+#creating column with total observed height locations for each plot, treat_heat, treat_para and stage combo
+hght_cnt$obs_totn <- hght_cnt$h + hght_cnt$l + hght_cnt$m
+
+#creating prop from total number of observations from that plot, treat_heat, treat_para and stage
+hght_cnt$h_obs_prop <- hght_cnt$h / hght_cnt$obs_totn
+hght_cnt$l_obs_prop <- hght_cnt$l / hght_cnt$obs_totn
+hght_cnt$m_obs_prop <- hght_cnt$m / hght_cnt$obs_totn
+
+
+#put back into long format
+hght_cnt <- gather(hght_cnt, height, obs_prop, h_obs_prop, l_obs_prop, m_obs_prop)
+hght_cnt$height <- gsub("_obs_prop", "", hght_cnt$height)
+
+#make height a factor so I can order the levels to h, m, l
+hght_cnt$height <- factor(hght_cnt$height, levels=c("h", "m", "l"))
+
+
+#plotting prop of observations of heigh by treat_heat, treat_para and stage
+hstage_op_bar <- ggplot(hght_cnt, aes(x=height, y=obs_prop, fill=treat_para))
+hstage_op_bar + geom_bar(stat="identity", position = "dodge" 
+)+facet_wrap(treat_heat~cen_stage)
+
+
+
 
 
