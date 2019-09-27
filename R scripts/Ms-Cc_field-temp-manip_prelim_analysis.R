@@ -436,7 +436,7 @@ hstage_op_bar + geom_bar(stat="identity", position = "dodge"
 
 #LEAF SURFACE
 
-#counts of location data for height on plant
+#counts of location data for leaf surface
 lfsrf_cnt <- ftm_loc_cnt %>% count(treat_para, treat_heat, plot_id, cen_stage, leaf_surf)
 View(lfsrf_cnt)
 
@@ -444,7 +444,7 @@ View(lfsrf_cnt)
 lfsrf_cnt <- spread(lfsrf_cnt, leaf_surf, n, fill=0)
 lfsrf_cnt$ud <- NULL
 
-#creating column with total observed height locations for each plot, treat_heat, treat_para and stage combo
+#creating column with total observed leaf surface locations for each plot, treat_heat, treat_para and stage combo
 lfsrf_cnt$obs_totn <- lfsrf_cnt$ed + lfsrf_cnt$un + lfsrf_cnt$up
 
 #creating prop from total number of observations from that plot, treat_heat, treat_para and stage
@@ -465,6 +465,34 @@ lfsrf_stage_op_bar <- ggplot(lfsrf_cnt, aes(x=leaf_surf, y=obs_prop, fill=treat_
 lfsrf_stage_op_bar + geom_bar(stat="identity", position = "dodge" 
 )+facet_wrap(treat_heat~cen_stage)
 
+
+
+#SUN
+
+#counts of location data for sun/shade
+sush_cnt <- ftm_loc_cnt %>% count(treat_para, treat_heat, plot_id, cen_stage, shade)
+View(sush_cnt)
+
+#put into wide format to calculate proportions
+sush_cnt <- spread(sush_cnt, shade, n, fill=0)
+sush_cnt$shu<-NULL
+
+#creating column with total observed shade status for each plot, treat_heat, treat_para and stage combo
+sush_cnt$obs_totn <- sush_cnt$sh + sush_cnt$su
+
+#creating prop from total number of observations from that plot, treat_heat, treat_para and stage
+sush_cnt$sh_obs_prop <- sush_cnt$sh / sush_cnt$obs_totn
+sush_cnt$su_obs_prop <- sush_cnt$su / sush_cnt$obs_totn
+
+#put back into long format
+sush_cnt <- gather(sush_cnt, shade, obs_prop, sh_obs_prop, su_obs_prop)
+sush_cnt$shade <- gsub("_obs_prop", "", sush_cnt$shade)
+
+
+#plotting prop of observations of leaf surface by treat_heat, treat_para and stage
+sush_stage_op_bar <- ggplot(sush_cnt, aes(x=shade, y=obs_prop, fill=treat_para))
+sush_stage_op_bar + geom_bar(stat="identity", position = "dodge" 
+)+facet_wrap(treat_heat~cen_stage)
 
 
 
