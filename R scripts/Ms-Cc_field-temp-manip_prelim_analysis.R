@@ -405,22 +405,18 @@ ftm_loc_cnt <- ftm_lng %>% select(bug_id, plot_id, treat_para, treat_heat, cen_n
 hght_cnt <- ftm_loc_cnt %>% count(treat_para, treat_heat, plot_id, cen_stage, height)
 
 
-#put into wide format
+#put into wide format for calculating totals
 hght_cnt <- spread(hght_cnt, height, n, fill=0)
 hght_cnt$u <- NULL
 
 #creating column with total observed height locations for each plot, treat_heat, treat_para and stage combo
 hght_cnt$obs_totn <- hght_cnt$h + hght_cnt$l + hght_cnt$m
 
-#creating prop from total number of observations from that plot, treat_heat, treat_para and stage
-hght_cnt$h_obs_prop <- hght_cnt$h / hght_cnt$obs_totn
-hght_cnt$l_obs_prop <- hght_cnt$l / hght_cnt$obs_totn
-hght_cnt$m_obs_prop <- hght_cnt$m / hght_cnt$obs_totn
+#return to long format for calculating proportion of observations for each height
+hght_cnt <- gather(hght_cnt, height, obs_cnt, h, m, l)
 
-
-#put back into long format
-hght_cnt <- gather(hght_cnt, height, obs_prop, h_obs_prop, l_obs_prop, m_obs_prop)
-hght_cnt$height <- gsub("_obs_prop", "", hght_cnt$height)
+#calculate proportion of observations at each height for each combo of treat_para, treat_heat, plot_id and cen_stage
+hght_cnt$obs_prop <- hght_cnt$obs_cnt / hght_cnt$obs_totn
 
 #make height a factor so I can order the levels to h, m, l
 hght_cnt$height <- factor(hght_cnt$height, levels=c("h", "m", "l"))
@@ -447,15 +443,11 @@ lfsrf_cnt$ud <- NULL
 #creating column with total observed leaf surface locations for each plot, treat_heat, treat_para and stage combo
 lfsrf_cnt$obs_totn <- lfsrf_cnt$ed + lfsrf_cnt$un + lfsrf_cnt$up
 
-#creating prop from total number of observations from that plot, treat_heat, treat_para and stage
-lfsrf_cnt$ed_obs_prop <- lfsrf_cnt$ed / lfsrf_cnt$obs_totn
-lfsrf_cnt$un_obs_prop <- lfsrf_cnt$un / lfsrf_cnt$obs_totn
-lfsrf_cnt$up_obs_prop <- lfsrf_cnt$up / lfsrf_cnt$obs_totn
+#return to long format for calculating proportion of observations for each height
+lfsrf_cnt <- gather(lfsrf_cnt, leaf_surf, obs_cnt, up, ed, un)
 
-
-#put back into long format
-lfsrf_cnt <- gather(lfsrf_cnt, leaf_surf, obs_prop, ed_obs_prop, un_obs_prop, up_obs_prop)
-lfsrf_cnt$leaf_surf <- gsub("_obs_prop", "", lfsrf_cnt$leaf_surf)
+#calculate proportion of observations at each height for each combo of treat_para, treat_heat, plot_id and cen_stage
+lfsrf_cnt$obs_prop <- lfsrf_cnt$obs_cnt / lfsrf_cnt$obs_totn
 
 #make leaf_surf a factor so I can order it up, ed, un
 lfsrf_cnt$leaf_surf <- factor(lfsrf_cnt$leaf_surf, levels=c("up", "ed", "un"))
@@ -480,19 +472,52 @@ sush_cnt$shu<-NULL
 #creating column with total observed shade status for each plot, treat_heat, treat_para and stage combo
 sush_cnt$obs_totn <- sush_cnt$sh + sush_cnt$su
 
-#creating prop from total number of observations from that plot, treat_heat, treat_para and stage
-sush_cnt$sh_obs_prop <- sush_cnt$sh / sush_cnt$obs_totn
-sush_cnt$su_obs_prop <- sush_cnt$su / sush_cnt$obs_totn
+#return to long format for calculating proportion of observations for each height
+sush_cnt <- gather(sush_cnt, shade, obs_cnt, su, sh)
 
-#put back into long format
-sush_cnt <- gather(sush_cnt, shade, obs_prop, sh_obs_prop, su_obs_prop)
-sush_cnt$shade <- gsub("_obs_prop", "", sush_cnt$shade)
+#calculate proportion of observations at each height for each combo of treat_para, treat_heat, plot_id and cen_stage
+sush_cnt$obs_prop <- sush_cnt$obs_cnt / sush_cnt$obs_totn
 
 
 #plotting prop of observations of leaf surface by treat_heat, treat_para and stage
 sush_stage_op_bar <- ggplot(sush_cnt, aes(x=shade, y=obs_prop, fill=treat_para))
 sush_stage_op_bar + geom_bar(stat="identity", position = "dodge" 
 )+facet_wrap(treat_heat~cen_stage)
+
+
+#---------------------------------------------------
+
+#combining separate location counts dataframes into one for direct comparisons of the different aspects
+
+#rename obs_totn and obs_prop columns so they don't combine in merging
+hght_cnt <- rename(hght_cnt, hght_op=obs_prop, hght_totn=obs_totn, hght_obs_cnt=obs_cnt)
+lfsrf_cnt <- rename(lfsrf_cnt, lfsrf_op=obs_prop, lfsrf_totn=obs_totn, lfsrf_obs_cnt=obs_cnt)
+sush_cnt <- rename (sush_cnt, sush_op=obs_prop, sush_totn=obs_totn, sush_obs_cnt=obs_cnt)
+
+#create identifing column of treat_para, treat_heat, plot_id, and cen_stage
+hght_cnt <- hght_cnt %>% unite(treat_id, treat_para, treat_heat, plot_id, cen_stage, remove = FALSE)
+lfsrf_cnt <- lfsrf_cnt %>% unite(treat_id, treat_para, treat_heat, plot_id, cen_stage, remove = FALSE)
+sush_cnt <- sush_cnt %>% unite(treat_id, treat_para, treat_heat, plot_id, cen_stage, remove = FALSE)
+
+
+#reduce lfsrf to only treat_id, leaf_surf and obs columns
+lf_mrg <- select(lfsrf_cnt, treat_id, lfsrf_op, lfsrf_totn, lfsrf_obs_cnt, leaf_surf)
+
+
+cnt1 <- bind_cols(lf_mrg, hght_cnt)
+
+cnt1$treat_id %in% cnt1$treat_id1
+
+
+
+#plot prop height against prop lfsrf
+hght_lfsrf_plot <- ggplot(cnt1, aes(x=hght_op, y=lfsrf_op, group=interaction(height, leaf_surf)))
+hght_lfsrf_plot+geom_point(aes(shape=height, color=leaf_surf),
+                           size=5
+)+facet_wrap(treat_heat~cen_stage)
+
+
+
 
 
 
