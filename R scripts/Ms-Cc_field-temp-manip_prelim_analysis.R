@@ -486,6 +486,7 @@ sush_stage_op_bar + geom_bar(stat="identity", position = "dodge"
 
 
 #---------------------------------------------------
+#ATTEMPT 1
 
 #combining separate location counts dataframes into one for direct comparisons of the different aspects
 
@@ -509,6 +510,11 @@ cnt1 <- bind_cols(lf_mrg, hght_cnt)
 cnt1$treat_id %in% cnt1$treat_id1
 
 
+sush_mrg <- select(sush_cnt, treat_id, sush_totn, shade, sush_obs_cnt, sush_op)
+
+test <- merge(cnt1, sush_mrg, by="treat_id")
+
+
 
 #plot prop height against prop lfsrf
 hght_lfsrf_plot <- ggplot(cnt1, aes(x=hght_op, y=lfsrf_op, group=interaction(height, leaf_surf)))
@@ -518,8 +524,99 @@ hght_lfsrf_plot+geom_point(aes(shape=height, color=leaf_surf),
 
 
 
+#-------------------------
+
+#ATTEMPT 2
+
+#put cnt data frames into wide format first, so that each treat_id has info for each level of height, leaf
+  ##surface and shade--both counts and prop
 
 
+
+#HEIGHT
+
+#remove cnts column so proportions will combine properly
+hght_wd <- select(hght_cnt, -hght_obs_cnt)
+
+#wide format for props
+hght_wd <- spread(hght_wd, height, hght_op)
+
+#rename columns to indicate proportions
+hght_wd <- rename(hght_wd, h_prop=h, m_prop=m, l_prop=l)
+
+
+
+#remove proption column so values combine properly for counts
+hght_wd2 <- select(hght_cnt, -hght_op)
+
+#wide format for counts
+hght_wd2 <- spread(hght_wd2, height, hght_obs_cnt, fill=0)
+
+#rename columns to indicate counts
+hght_wd2 <- rename(hght_wd2, h_cnt=h, m_cnt=m, l_cnt=l)
+
+#combine wide data frames with counts and proportions
+hght_wd<-merge(hght_wd, hght_wd2)
+
+
+#LEAF SURFACE
+
+#remove cnts column so proportions will combine properly
+lfsrf_wd1 <- select(lfsrf_cnt, -lfsrf_obs_cnt)
+
+#wide format for props
+lfsrf_wd1 <- spread(lfsrf_wd1, leaf_surf, lfsrf_op)
+
+#rename columns to indicate proportions
+lfsrf_wd1 <- rename(lfsrf_wd1, up_prop=up, ed_prop=ed, un_prop=un)
+
+
+
+#remove prop column so counts will combine properly
+lfsrf_wd2 <- select(lfsrf_cnt, -lfsrf_op)
+
+#wide format for counts
+lfsrf_wd2 <- spread(lfsrf_wd2, leaf_surf, lfsrf_obs_cnt)
+
+#rename columns to indicate counts
+lfsrf_wd2 <- rename(lfsrf_wd2, up_cnt=up, ed_cnt=ed, un_cnt=un)
+
+
+#merge wide data frames together
+lfsrf_wd <- merge(lfsrf_wd2, lfsrf_wd1)
+
+
+
+#SHADE
+
+#remove count columns so proportions will combine properly
+sush_wd1 <- select(sush_cnt, -sush_obs_cnt)
+
+#wide format for proportions
+sush_wd1 <- spread(sush_wd1, shade, sush_op)
+
+#rename columns to indicate proportions
+sush_wd1 <- rename(sush_wd1, su_prop=su, sh_prop=sh)
+
+
+#remove proproptions so counts will combine properly
+sush_wd2 <- select(sush_cnt, -sush_op)
+
+#wide format for counts
+sush_wd2 <- spread(sush_wd2, shade, sush_obs_cnt)
+
+#rename columns to indicate counts
+sush_wd2 <- rename(sush_wd2, sh_cnt=sh, su_cnt=su)
+
+
+#merge wide data frames
+sush_wd <- merge(sush_wd1, sush_wd2)
+
+
+
+#Merge all wide dataframes together
+wd1 <- merge(hght_wd, lfsrf_wd)
+pos_wd <- merge(wd1, sush_wd)
 
 
 
