@@ -7,6 +7,7 @@ library(ggplot2)
 library(Rmisc)
 library(dplyr)
 library(tidyr)
+library(plotly)
 
 
 
@@ -617,6 +618,51 @@ sush_wd <- merge(sush_wd1, sush_wd2)
 #Merge all wide dataframes together
 wd1 <- merge(hght_wd, lfsrf_wd)
 pos_wd <- merge(wd1, sush_wd)
+
+
+#------------------------------------
+
+#transform wide data frame with all positional prop and cnt data into long format
+  ##just doing prop for now, do cnts later if needed
+
+#height
+pos_lng1 <- gather(pos_wd, height, hght_op, h_prop, m_prop, l_prop)
+pos_lng1$height <- gsub("_prop", "", pos_lng1$height)
+
+#leaf surface
+pos_lng2 <- gather(pos_wd, leaf_surf, lfsrf_op, up_prop, ed_prop, un_prop)
+pos_lng2$leaf_surf <- gsub("_prop", "", pos_lng2$leaf_surf)
+
+#shade
+
+#make a dummy column (filled with NA) to make shade have 3 levels--need to have the same number of rows as 
+  ##other data frames
+pos_wd$nosush_prop <- NA
+pos_lng3 <- gather(pos_wd, shade, sush_op, su_prop, sh_prop, nosush_prop)
+pos_lng3$shade <- gsub("_prop", "", pos_lng3$shade)
+
+
+#remove repeated columns in pos_lng2 and pos_lng3
+pos_lng2 <- select(pos_lng2, treat_id, leaf_surf, lfsrf_op)
+pos_lng3 <- select(pos_lng3, treat_id, shade, sush_op)
+
+#bind long data frames together
+pos_lng4 <- bind_cols(pos_lng1, pos_lng2)
+pos_lng <- bind_cols(pos_lng4, pos_lng3)
+
+
+#--------------------
+
+#attempt to make a 3D point plot
+
+plot_ly(pos_lng, x= ~lfsrf_op)
+
+pos_plot <- plot_ly(pos_lng, x = ~lfsrf_op, y = ~hght_op, z = ~sush_op, color= ~height)%>%
+  add_markers() %>%
+  layout(scene = list(xaxis = list(title = 'leaf surf prop'),
+                      yaxis = list(title = 'height prop'),
+                      zaxis = list(title = 'shade prop')))
+pos_plot
 
 
 
