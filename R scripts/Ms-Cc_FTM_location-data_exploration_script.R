@@ -349,8 +349,20 @@ pos_plot
 
 #attempting to make location data a numeric variable by assigning values to each level
 
+#making a column with numeric value for height levels with an ifelse statement
+ftm_lng$hght_num <- ifelse(ftm_lng$height=="l", 0,
+                           ifelse(ftm_lng$height=="m", 1,
+                                  ifelse(ftm_lng$height=="h", 2, NA)))
 
 
+#making a column with numeric value for leaf surface levels with an ifelse statement
+ftm_lng$lfsrf_num <- ifelse(ftm_lng$leaf_surf=="un", 0, 
+                            ifelse(ftm_lng$leaf_surf=="ed", 1,
+                                   ifelse(ftm_lng$leaf_surf=="up", 2, NA)))
 
+
+#making a column with numeric value for shade levels with an ifelse statement
+ftm_lng$sush_num <- ifelse(ftm_lng$shade=="sh", 0,
+                           ifelse(ftm_lng$shade=="su", 1, NA))
 
 
