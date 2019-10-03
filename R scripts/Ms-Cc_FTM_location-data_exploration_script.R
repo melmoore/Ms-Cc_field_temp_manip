@@ -366,3 +366,40 @@ ftm_lng$sush_num <- ifelse(ftm_lng$shade=="sh", 0,
                            ifelse(ftm_lng$shade=="su", 1, NA))
 
 
+
+#take mean of numeric location data for treat_para, treat_heat, plot_id and cen_stage
+
+nl_hght_sum <- summarySE(ftm_lng, measurevar = "hght_num", 
+                         groupvars = c("treat_para", "treat_heat", "plot_id", "cen_stage"),
+                         na.rm = TRUE)
+nl_hght_sum
+
+
+nl_lfsrf_sum <- summarySE(ftm_lng, measurevar = "lfsrf_num", 
+                          groupvars = c("treat_para", "treat_heat", "plot_id", "cen_stage"),
+                          na.rm = TRUE)
+nl_lfsrf_sum
+
+
+nl_sush_sum <- summarySE(ftm_lng, measurevar = "sush_num", 
+                         groupvars = c("treat_para", "treat_heat", "plot_id", "cen_stage"),
+                         na.rm = TRUE)
+nl_sush_sum
+
+
+
+#combine into same dataframe
+mn_locnum <- nl_hght_sum
+mn_locnum$lfsrf_num <- nl_lfsrf_sum[,6]
+mn_locnum$sush_num <- nl_sush_sum[,6]
+
+
+#plotting 3D scatter plot of mean loc numeric data
+mn_locnum_3dscat <- plot_ly(mn_locnum, x = ~lfsrf_num, y = ~hght_num, z = ~sush_num,
+                            color = ~treat_para) %>%
+  add_markers() %>%
+  layout(scene = list(xaxis = list(title = 'mn leaf surface'),
+                      yaxis = list(title = 'mn height'),
+                      zaxis = list(title = 'mn shade')))
+mn_locnum_3dscat
+
