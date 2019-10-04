@@ -377,6 +377,8 @@ ftm_lng$cen_time_ampm <- ifelse(ftm_lng$cen_time < 12, "am",
                                 ifelse(ftm_lng$cen_time >= 12, "pm", 0))
 
 
+#------------------------
+
 #take mean of numeric location data for treat_para, treat_heat, plot_id and cen_stage
 
 nl_hght_sum <- summarySE(ftm_lng, measurevar = "hght_num", 
@@ -410,6 +412,8 @@ mn_locnum$lfsrf_se <- nl_lfsrf_sum[,9]
 mn_locnum$sush_se <- nl_sush_sum[,9]
 
 
+#-----------------------
+
 #plotting 3D scatter plot of mean loc numeric data
 mn_locnum_3dscat <- plot_ly(mn_locnum, x = ~lfsrf_num, y = ~hght_num, z = ~sush_num,
                             color = ~treat_para) %>%
@@ -420,6 +424,7 @@ mn_locnum_3dscat <- plot_ly(mn_locnum, x = ~lfsrf_num, y = ~hght_num, z = ~sush_
 mn_locnum_3dscat
 
 
+#--------------------------
 
 #plot of mn hght_num and mn lfsrf_num by treat_hs and cen_stage
 
@@ -454,6 +459,99 @@ mn_hght_lfsrf_p2_plot <- ggplot(mn_locnum_p2, aes(x=hght_num, y=lfsrf_num,
 mn_hght_lfsrf_p2_plot + geom_point(aes(shape=cen_time_ampm),
                                    size=5
 )+geom_errorbar(aes(ymin = lfsrf_num-lfsrf_se, ymax = lfsrf_num+lfsrf_se)
+)+geom_errorbarh(aes(xmin = hght_num-se, xmax = hght_num+se)
+)+geom_line(size=1.2
+)+scale_color_manual(values=c("#E69F00", "black"),
+                     breaks=c("p", "np"),
+                     labels=c("P", "NP"),
+                     name="Para Trtmnt"
+)+scale_shape_manual(values=c(16, 17),
+                     breaks=c("am", "pm"),
+                     labels=c("AM", "PM"),
+                     name="Census Time"
+)+facet_wrap(treat_heat~cen_stage)
+
+
+
+#--------------------------
+
+#plot of leaf surface and shade
+
+#plot 1
+mn_sush_lfsrf_p1_plot <- ggplot(mn_locnum_p1, aes(x=lfsrf_num, y=sush_num, 
+                                                  group=treat_para, 
+                                                  color=treat_para))
+mn_sush_lfsrf_p1_plot + geom_point(aes(shape=cen_time_ampm),
+                                   size=5
+)+geom_errorbar(aes(ymin = sush_num-sush_se, ymax = sush_num+sush_se)
+)+geom_errorbarh(aes(xmin = lfsrf_num-lfsrf_se, xmax = lfsrf_num+lfsrf_se)
+)+geom_line(size=1.2
+)+scale_color_manual(values=c("#E69F00", "black"),
+                     breaks=c("p", "np"),
+                     labels=c("P", "NP"),
+                     name="Para Trtmnt"
+)+scale_shape_manual(values=c(16, 17),
+                     breaks=c("am", "pm"),
+                     labels=c("AM", "PM"),
+                     name="Census Time"
+)+facet_wrap(treat_heat~cen_stage)
+
+
+
+#plot 2
+mn_sush_lfsrf_p2_plot <- ggplot(mn_locnum_p2, aes(x=lfsrf_num, y=sush_num, 
+                                                  group=treat_para, 
+                                                  color=treat_para))
+mn_sush_lfsrf_p2_plot + geom_point(aes(shape=cen_time_ampm),
+                                   size=5
+)+geom_errorbar(aes(ymin = sush_num-sush_se, ymax = sush_num+sush_se)
+)+geom_errorbarh(aes(xmin = lfsrf_num-lfsrf_se, xmax = lfsrf_num+lfsrf_se)
+)+geom_line(size=1.2
+)+scale_color_manual(values=c("#E69F00", "black"),
+                     breaks=c("p", "np"),
+                     labels=c("P", "NP"),
+                     name="Para Trtmnt"
+)+scale_shape_manual(values=c(16, 17),
+                     breaks=c("am", "pm"),
+                     labels=c("AM", "PM"),
+                     name="Census Time"
+)+facet_wrap(treat_heat~cen_stage)
+
+
+
+
+#--------------------------
+
+#plot of height and shade
+
+#plot 1
+mn_sush_hght_p1_plot <- ggplot(mn_locnum_p1, aes(x=hght_num, y=sush_num, 
+                                                  group=treat_para, 
+                                                  color=treat_para))
+mn_sush_hght_p1_plot + geom_point(aes(shape=cen_time_ampm),
+                                   size=5
+)+geom_errorbar(aes(ymin = sush_num-sush_se, ymax = sush_num+sush_se)
+)+geom_errorbarh(aes(xmin = hght_num-se, xmax = hght_num+se)
+)+geom_line(size=1.2
+)+scale_color_manual(values=c("#E69F00", "black"),
+                     breaks=c("p", "np"),
+                     labels=c("P", "NP"),
+                     name="Para Trtmnt"
+)+scale_shape_manual(values=c(16, 17),
+                     breaks=c("am", "pm"),
+                     labels=c("AM", "PM"),
+                     name="Census Time"
+)+facet_wrap(treat_heat~cen_stage)
+
+
+
+#plot 1
+mn_sush_hght_p2_plot <- ggplot(mn_locnum_p2, aes(x=hght_num, y=sush_num, 
+                                                 group=treat_para, 
+                                                 color=treat_para))
+mn_sush_hght_p2_plot + geom_point(aes(shape=cen_time_ampm),
+                                  size=5
+)+geom_errorbar(aes(ymin = sush_num-sush_se, ymax = sush_num+sush_se)
 )+geom_errorbarh(aes(xmin = hght_num-se, xmax = hght_num+se)
 )+geom_line(size=1.2
 )+scale_color_manual(values=c("#E69F00", "black"),
