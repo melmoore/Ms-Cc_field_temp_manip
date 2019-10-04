@@ -366,23 +366,36 @@ ftm_lng$sush_num <- ifelse(ftm_lng$shade=="sh", 0,
                            ifelse(ftm_lng$shade=="su", 1, NA))
 
 
+#remove rows with NA's in cen_time
+ftm_lng$cen_time[is.na(ftm_lng$cen_time)]<-0
+ftm_lng <- subset(ftm_lng, cen_time!=0)
+
+
+#make a column that roughly sorts cen_time into am (<12) and pm (>12) categories. Will sort more accurately
+  ##later, once temp data is included
+ftm_lng$cen_time_ampm <- ifelse(ftm_lng$cen_time < 12, "am", 
+                                ifelse(ftm_lng$cen_time >= 12, "pm", 0))
+
 
 #take mean of numeric location data for treat_para, treat_heat, plot_id and cen_stage
 
 nl_hght_sum <- summarySE(ftm_lng, measurevar = "hght_num", 
-                         groupvars = c("treat_para", "treat_heat", "plot_id", "cen_stage"),
+                         groupvars = c("treat_para", "treat_heat", "plot_id", "cen_stage", 
+                                       "cen_time_ampm"),
                          na.rm = TRUE)
 nl_hght_sum
 
 
 nl_lfsrf_sum <- summarySE(ftm_lng, measurevar = "lfsrf_num", 
-                          groupvars = c("treat_para", "treat_heat", "plot_id", "cen_stage"),
+                          groupvars = c("treat_para", "treat_heat", "plot_id", "cen_stage",
+                                        "cen_time_ampm"),
                           na.rm = TRUE)
 nl_lfsrf_sum
 
 
 nl_sush_sum <- summarySE(ftm_lng, measurevar = "sush_num", 
-                         groupvars = c("treat_para", "treat_heat", "plot_id", "cen_stage"),
+                         groupvars = c("treat_para", "treat_heat", "plot_id", "cen_stage",
+                                       "cen_time_ampm"),
                          na.rm = TRUE)
 nl_sush_sum
 
@@ -390,8 +403,11 @@ nl_sush_sum
 
 #combine into same dataframe
 mn_locnum <- nl_hght_sum
-mn_locnum$lfsrf_num <- nl_lfsrf_sum[,6]
-mn_locnum$sush_num <- nl_sush_sum[,6]
+mn_locnum$lfsrf_num <- nl_lfsrf_sum[,7]
+mn_locnum$sush_num <- nl_sush_sum[,7]
+
+mn_locnum$lfsrf_se <- nl_lfsrf_sum[,9]
+mn_locnum$sush_se <- nl_sush_sum[,9]
 
 
 #plotting 3D scatter plot of mean loc numeric data
@@ -402,4 +418,51 @@ mn_locnum_3dscat <- plot_ly(mn_locnum, x = ~lfsrf_num, y = ~hght_num, z = ~sush_
                       yaxis = list(title = 'mn height'),
                       zaxis = list(title = 'mn shade')))
 mn_locnum_3dscat
+
+
+
+#plot of mn hght_num and mn lfsrf_num by treat_hs and cen_stage
+
+#subset by plot_id
+mn_locnum_p1 <- subset(mn_locnum, plot_id=="plot1")
+mn_locnum_p2 <- subset(mn_locnum, plot_id=="plot2")
+
+#plot 1
+mn_hght_lfsrf_p1_plot <- ggplot(mn_locnum_p1, aes(x=hght_num, y=lfsrf_num, 
+                                            group=treat_para, 
+                                            color=treat_para))
+mn_hght_lfsrf_p1_plot + geom_point(aes(shape=cen_time_ampm),
+                                size=5
+)+geom_errorbar(aes(ymin = lfsrf_num-lfsrf_se, ymax = lfsrf_num+lfsrf_se)
+)+geom_errorbarh(aes(xmin = hght_num-se, xmax = hght_num+se)
+)+geom_line(size=1.2
+)+scale_color_manual(values=c("#E69F00", "black"),
+                     breaks=c("p", "np"),
+                     labels=c("P", "NP"),
+                     name="Para Trtmnt"
+)+scale_shape_manual(values=c(16, 17),
+                     breaks=c("am", "pm"),
+                     labels=c("AM", "PM"),
+                     name="Census Time"
+)+facet_wrap(treat_heat~cen_stage)
+
+
+#plot 2
+mn_hght_lfsrf_p2_plot <- ggplot(mn_locnum_p2, aes(x=hght_num, y=lfsrf_num, 
+                                                  group=treat_para, 
+                                                  color=treat_para))
+mn_hght_lfsrf_p2_plot + geom_point(aes(shape=cen_time_ampm),
+                                   size=5
+)+geom_errorbar(aes(ymin = lfsrf_num-lfsrf_se, ymax = lfsrf_num+lfsrf_se)
+)+geom_errorbarh(aes(xmin = hght_num-se, xmax = hght_num+se)
+)+geom_line(size=1.2
+)+scale_color_manual(values=c("#E69F00", "black"),
+                     breaks=c("p", "np"),
+                     labels=c("P", "NP"),
+                     name="Para Trtmnt"
+)+scale_shape_manual(values=c(16, 17),
+                     breaks=c("am", "pm"),
+                     labels=c("AM", "PM"),
+                     name="Census Time"
+)+facet_wrap(treat_heat~cen_stage)
 
