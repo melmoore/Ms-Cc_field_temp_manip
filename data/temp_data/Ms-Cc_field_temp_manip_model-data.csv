@@ -1,0 +1,21 @@
+mod_id,plant_id,loc,treat_hs,notes
+tc1,B9,m_un_sh ,con,
+tc2,A6,h_un_sh,con,
+tc3,B4,m_un_sh ,hs,
+tc4,B2,m_un_sh ,hs,
+tc5,B6,h_un_sh ,con ,
+tc6,A7,m_un_sh ,con,
+tc7,A3,m_un_sh ,hs,
+tc8,A1,m_un_sh ,hs,
+tc9,B7,l_un_sh ,con ,"moved to different leaf 7/22/19, original leaf broke when someone tripped over wire"
+tc10,B8,h_un_sh ,con ,
+tc11,B3,h_un_sh ,hs,
+tc12,A4,m_un_sh ,hs,
+tc13,A2,l_un_sh ,hs,
+tc14,B5,l_un_sh ,hs,"moved to different leaf 7/26/19, original leaf broke when wire was tripped on"
+tc15,B1,m_un_sh ,hs,
+tc16,A5,h_un_sh ,hs,
+tc17,A9,m_un_sh ,con,
+tc18,B10,h_un_sh ,con,
+tc19,A10,m_un_sh ,con,
+tc20,A8,m_un_sh ,con,
