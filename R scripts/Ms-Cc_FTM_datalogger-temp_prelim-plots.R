@@ -125,21 +125,55 @@ dmax_mntemp <- temp_sum %>% group_by(treat_hs, loc, date) %>% top_n(1, temp)
 dmax_sdtemp <- temp_sum %>% group_by(treat_hs, loc, date) %>% top_n(1, sd2)
 
 
+#plot dmax_mntemp data to figure out why it has 116 rows
+check_plot <- ggplot(dmax_mntemp, aes(x=loc, y=temp, group=treat_hs, color=treat_hs))
+check_plot+geom_jitter(size=6
+)+facet_wrap(~date)
+
+#2 dates had too many values, making the dataframe 116 rows instead of 114. manually removing them here
+dmax_mntemp <- dmax_mntemp[-c(73),]
+dmax_mntemp <- dmax_mntemp[-c(20),]
+
+
 #since there was only one model that was con and low, have to make dummy rows
   ##for some reason when I try to do this before running the code to find max in day, it creates 
   ##an absurd number of rows, copying that 1 combo multiple times
 
-#make a dummy dataframe to bind_rows with dmax_sdtemp data frame
+#Subset con and l_un_sh from dmax_mntemp to add on to dmax_sdtemp, since the sd will be NA anyway
+for_bind <- subset(dmax_mntemp, treat_hs=="con" & loc=="l_un_sh")
+View(for_bind)
+
+#bind dmax_sdtemp with the "dummy" data frame for con low
+dmax_sdtemp <- bind_rows(dmax_sdtemp, for_bind)
+
+#add max sd2 from dmax_sdtemp to dmax_mntemp
+dmax_mntemp$max_sd2 <- dmax_sdtemp$sd2
 
 
+#plot max daily temp with max daily sd2
+max_tempsd2_plot <- ggplot(dmax_mntemp, aes(x=temp, y=max_sd2, group=treat_hs, color=treat_hs))
+max_tempsd2_plot+geom_point(size=3
+)+geom_smooth(method="lm"                            
+)+facet_wrap(~loc)
 
 
-dum_sd <- dataframe
+#-----------
+
+#plot densities of temperature, grouped by treat_hs and loc
+
+tempdens_plot <- ggplot(dlt_lng, aes(x=temp, group=treat_hs, fill=treat_hs))
+tempdens_plot+geom_density(alpha=.5
+)+scale_fill_manual(values = c("#999999", "#D55E00"),
+                    breaks=c("con", "hs")
+)+facet_wrap(~loc)
 
 
-
-
-
+#plot densities of mn+2SD, grouped by treat_hs and loc
+pos2sd_plot <- ggplot(temp_sum, aes(x=sd2_pos, group=treat_hs, fill=treat_hs))
+pos2sd_plot+geom_density(alpha=.5
+)+scale_fill_manual(values = c("#999999", "#D55E00"),
+                    breaks=c("con", "hs")
+)+facet_wrap(~loc)
 
 
 
