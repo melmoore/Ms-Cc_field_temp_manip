@@ -10,7 +10,7 @@ library(tidyr)
 
 #load data
 
-ftm <- read_csv("data/Ms-Cc_field_temp_manip_data.csv", 
+ftm <- read_csv("data/Ms-Cc_field_temp_manip_data_incomp_11-7-19.csv", 
                 col_types = cols(treat_heat = col_factor(levels = c("con", "hs")), 
                                  treat_para = col_factor(levels = c("p", "np"))))
 
