@@ -8,13 +8,15 @@ library(Rmisc)
 library(dplyr)
 library(tidyr)
 library(plotly)
-
+library(nlme)
+library(lme4)
+library(scales)
 
 
 
 #load data
 
-ftm <- read_csv("data/Ms-Cc_field_temp_manip_data.csv", 
+ftm <- read_csv("data/Ms-Cc_FTM_incomp_ed-raw.csv", 
                                         col_types = cols(treat_heat = col_factor(levels = c("con", "hs")), 
                                                          treat_para = col_factor(levels = c("p", "np"))))
 
@@ -107,6 +109,38 @@ msex_em_plot+geom_point(
 
 #-------------------------
 
+#plotting data for subset of hosts and wasps that I have dissected so far
+
+#create a sorting column to keep only parasitized hosts with emergence that I have dissected
+ftm_p$num_unem[is.na(ftm_p$num_unem)]<-0
+
+ftm_p$keep_dis <- ifelse(ftm_p$num_unem>0, 1, 0)
+
+#subset to only dissected hosts
+ftm_pdis <- subset(ftm_p, keep_dis==1)
+
+
+
+#plot prop ecl by load
+psecl_ld_plot <- ggplot(ftm_pdis, aes(x=load, y=ps_ld_ecl, group=treat_heat, color=treat_heat))
+psecl_ld_plot+geom_point(size=4
+)+geom_smooth(method="lm", se=FALSE
+)+facet_wrap(~plot_id)
+
+
+#box plot of prop ecl
+psecl_boxplot <- ggplot(ftm_pdis, aes(x=treat_heat, y=ps_ld_ecl))
+psecl_boxplot+geom_boxplot(
+)+facet_wrap(~plot_id)
+
+
+
+
+
+
+
+#-------------------------
+
 #looking at mean wasp sex and mass 
 
 wsex_sum<-summarySE(ftm_pl, measurevar = "ecl",
@@ -172,6 +206,35 @@ massem_boxplot+geom_boxplot(
 
 
 #------------------------------------------
+
+#quick analysis of wasp survival to eclosion (using only hosts that have been dissected and have tot load)
+
+#calculate total number died for binomial glm
+ftm_pdis$tot_died <- ftm_pdis$load - ftm_pdis$num_ecl
+
+wecl_surv_mod1 <- glm(cbind(num_ecl, tot_died) ~ treat_heat * plot_id * load,
+                      family = quasibinomial,
+                      data=ftm_pdis,
+                      na.action = na.omit)
+
+anova(wecl_surv_mod1, test="F")
+summary(wecl_surv_mod1)
+
+#rescale load
+ftm_pdis$resc_ld <- rescale(ftm_pdis$load, to=c(0,1))
+
+wecl_surv_mod2 <- glmer(cbind(num_ecl, tot_died) ~ treat_heat * plot_id * resc_ld + (1|bug_id),
+                      family = binomial,
+                      data=ftm_pdis,
+                      na.action = na.omit,
+                      control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=100000)))
+
+anova(wecl_surv_mod2, test="F")
+summary(wecl_surv_mod2)
+
+
+
+
 
 
 #--------------------------------
