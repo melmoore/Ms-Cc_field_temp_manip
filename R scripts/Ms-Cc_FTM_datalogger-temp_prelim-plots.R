@@ -9,6 +9,7 @@ library(dplyr)
 library(viridis)
 library(cowplot)
 library(extrafont)
+library(mgcv)
 
 
 
@@ -174,6 +175,84 @@ pos2sd_plot+geom_density(alpha=.5
 )+scale_fill_manual(values = c("#999999", "#D55E00"),
                     breaks=c("con", "hs")
 )+facet_wrap(~loc)
+
+
+#----------------
+
+#per James suggestion, try a GAMM of temp data
+
+dlt_tmp <- dlt_lng
+
+#subset to only columns in model, and remove rows with NAs (so that predicted and fitted values can be
+#added to the dataframe easily)
+dlt_tmp <- select(dlt_tmp, tc, treat_hs, loc, date_time_j, temp)
+dlt_tmp <- na.omit(dlt_tmp)
+
+
+#make tc a factor so it will run as a random effect
+dlt_tmp$tc <- factor(dlt_tmp$tc)
+
+gam_temp_mod <- gam(temp ~ s(date_time_j, by=interaction(treat_hs, loc, bs="ts"))
+                   + treat_hs*loc,
+                    method="ML", data=dlt_tmp, na.action = na.omit)
+anova(gam_temp_mod)
+summary(gam_temp_mod)
+
+
+#making a null mod for comparison
+gam_temp_null <-gam(temp ~ s(date_time_j, bs="ts")
+                    + treat_hs*loc,
+                    method="ML", data=dlt_tmp, na.action = na.omit)
+anova(gam_temp_null)  
+summary(gam_temp_null)
+
+  
+#compare null model to model with interaction in smooth
+anova(gam_temp_mod, gam_temp_null, test="Chisq")
+AIC(gam_temp_mod, gam_temp_null)
+
+
+
+#add predicted and residual values for plotting
+dlt_tmp$pred <- predict(gam_temp_mod, level=0)
+dlt_tmp$resid <- residuals(gam_temp_mod, level=0)
+
+dlt_tmp$pred_null <- predict(gam_temp_null, level=0)
+dlt_tmp$resid_null <- residuals(gam_temp_null, level=0)
+
+#plot residuals against date for full model
+tmp_gammod_ra <- ggplot(dlt_tmp, aes(x=date_time_j, y=resid, color=loc))
+tmp_gammod_ra+geom_point(size=4, shape=1
+)+geom_hline(aes(yintercept=0),
+             color="black",
+             size=1.5, linetype="dashed"
+)+facet_wrap(~treat_hs)
+
+
+#plot fitted values for full model
+tmp_gammod_fit <- ggplot(dlt_tmp, aes(x=date_time_j, y=temp, color=treat_hs))
+tmp_gammod_fit+geom_point(size=3, shape=1
+)+geom_line(aes(y=pred, group=treat_hs)
+)+facet_wrap(~loc)
+
+
+#plot residuals against date for null model
+tmp_gamnull_ra <- ggplot(dlt_tmp, aes(x=date_time_j, y=resid_null, color=loc))
+tmp_gamnull_ra+geom_point(size=4, shape=1
+)+geom_hline(aes(yintercept=0),
+             color="black",
+             size=1.5, linetype="dashed"
+)+facet_wrap(~treat_hs)
+
+
+#plot fitted values for null model
+tmp_gamnull_fit <- ggplot(dlt_tmp, aes(x=date_time_j, y=temp, color=treat_hs))
+tmp_gamnull_fit+geom_point(size=3, shape=1
+)+geom_line(aes(y=pred_null, group=treat_hs)
+)+facet_wrap(~loc)
+
+
+
 
 
 
