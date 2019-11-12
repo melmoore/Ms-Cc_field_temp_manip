@@ -207,6 +207,15 @@ wadmass_sxpsecl_em_plot+geom_point(size=3
 )+geom_smooth(method="lm"
 )+facet_wrap(~treat_heat)
 
+
+
+#Host mass at 48h post ovp by parasitoid load
+emmass_ld_plot <- ggplot(ftm_pdis, aes(x=load, y=mass_48em, group=treat_heat, color=treat_heat))
+emmass_ld_plot+geom_point(size=4
+)+geom_smooth(method="lm",
+              size=1.2)
+
+
 #-------------------------
 
 #looking at mean wasp sex and mass 
@@ -314,6 +323,107 @@ anova(wadmass_mod1)
 
 
 #--------------------------------
+
+
+#quick analysis of caterpillar mass by age, treat_para, treat_heat, and plot
+
+#make long dataframe for mass and age
+#convert mass_48em column to a character
+ftm_cl$mass_48em <- as.numeric(ftm_cl$mass_48em)
+
+#create a column "mass_end" that combines mass columns for wandering and emergence
+ftm_cl$mass_end <- coalesce(ftm_cl$mass_wand, ftm_cl$mass_48em)
+
+#create a column "ttend" that combines age columns for wandering and emergence
+ftm_cl$ttend <- coalesce(ftm_cl$ttw, ftm_cl$ttem_h)
+
+#create a column "stage_end" to indicate whether the individual wandered or had emergence
+ftm_cl$date_wand.j[is.na(ftm_cl$date_wand.j)]<-0
+ftm_cl$date_em.j[is.na(ftm_cl$date_em.j)]<-0
+
+ftm_cl$stage_end <- ifelse(ftm_cl$date_wand.j>0, "wand", "em")
+
+#create an observed treat_para column, to account for individuals that wandered when they were supposed to 
+##be parasitized and vice versa
+ftm_cl$obs_treatp <- ifelse(ftm_cl$date_wand.j, "obs_np", "obs_p")
+
+
+#create a long data frame for mass at 3rd, mass at wandering and mass at emergence
+ftm_lm <- gather(ftm_cl, stage, mass, mass_3, mass_end)
+ftm_lm$stage <- gsub("mass_", "", ftm_lm$stage)
+
+#replace "end" in stage column with wand or em, based off stage_end column
+ftm_lm$stage <- ifelse(ftm_lm$stage=="3", "3",
+                       ifelse(ftm_lm$stage_end=="wand", "wand",
+                              ifelse(ftm_lm$stage_end=="em", "em", 0)))
+
+
+#creat a long dataframe for age at 3rd, wandering and emergence
+ftm_la <- gather(ftm_cl, stage, age, tt3, ttend)
+ftm_la$stage <- gsub("tt", "", ftm_la$stage)
+
+#replace "end" in stage column with wand or em, based off stage_end column
+ftm_la$stage <- ifelse(ftm_la$stage=="3", "3",
+                       ifelse(ftm_la$stage_end=="wand", "wand",
+                              ifelse(ftm_la$stage_end=="em", "em", 0)))
+
+
+#subset to only id and data columns needed for merging
+ftm_la <- select(ftm_la, bug_id, stage, age)
+
+#merge long dataframes together
+ftm_lam <- merge(ftm_lm, ftm_la, by=c("bug_id", "stage"))
+View(ftm_lam)
+
+
+#create column with logged mass
+ftm_lam$log_mass <- log(ftm_lam$mass)
+
+
+#quick and dirty lme
+lmass_mod1 <- lme(log_mass ~ age*obs_treatp*treat_heat*plot_id,
+                  random = ~1|bug_id,
+                  data = ftm_lam,
+                  method = "ML",
+                  na.action = na.omit)
+anova(lmass_mod1)
+summary(lmass_mod1)
+
+
+#look at residuals and fitted values
+
+#select only columns used in models to create dataframe to attach fitted and residual values to
+ftm_mod <- ftm_lam
+ftm_mod <- select(ftm_mod, bug_id, log_mass, age, obs_treatp, treat_heat, plot_id)
+ftm_mod <- na.omit(ftm_mod)
+
+#generate fitted and residual values
+ftm_mod$pred <- predict(lmass_mod1, level=0)
+ftm_mod$resid <- residuals(lmass_mod1, level=0)
+
+
+#plot residuals against age--this model doesn't fit well
+lmss_lmemod_ra <- ggplot(ftm_mod, aes(x=age, y=resid, color=plot_id))
+lmss_lmemod_ra+geom_point(size=4, shape=1
+)+geom_hline(aes(yintercept=0),
+             color="black",
+             size=1.5, linetype="dashed"
+)+facet_wrap(treat_heat~obs_treatp)
+
+
+#-------------
+
+#attempting an lme removing age as a fixed effect and adding it as a random slope
+  ##not working, getting a convergence error
+lmass_mod2 <- lme(log_mass ~ treat_heat*obs_treatp*plot_id,
+                  random=~age|bug_id,
+                  data=ftm_lam,
+                  method = "ML",
+                  na.action = na.omit,
+                  control=lmeControl(msMaxIter = 1000))
+
+
+
 
 
 
