@@ -2,6 +2,7 @@
 
 
 #load libraries
+library(scales)
 library(readr)
 library(ggplot2)
 library(Rmisc)
@@ -10,7 +11,7 @@ library(tidyr)
 library(plotly)
 library(nlme)
 library(lme4)
-library(scales)
+
 
 
 
@@ -23,11 +24,17 @@ ftm <- read_csv("data/Ms-Cc_FTM_incomp_ed-raw.csv",
 View(ftm)
 
 
+ftm_cl <- read_csv("data/Ms-Cc_FTM_incomp_clean.csv",
+                   col_types = cols(plot_id = col_factor(levels = c("plot1","plot2")), 
+                                    treat_heat = col_factor(levels = c("con", "hs")), 
+                                    treat_para = col_factor(levels = c("np", "p"))))
+View(ftm_cl)
+
 
 
 #------------------
 
-#PRELIM FIGURES
+#data wrangling to subset to parasitized caterpillars and make long data frames for wasp sex data
 
 #subset to only parasitized caterpillars
 ftm_cl$date_em.j[is.na(ftm_cl$date_em.j)]<-0
@@ -45,10 +52,21 @@ ftm_pl$sex<-gsub("male_ecl", "Male", ftm_pl$sex)
 
 #make a long data set for wasp mass
 ftm_pml<-gather(ftm_p, sex, mass, ind_fem_mass, ind_male_mass)
-ftm_pml$sex<-gsub("fem_ecl", "Female", ftm_pml$sex)
-ftm_pml$sex<-gsub("male_ecl", "Male", ftm_pml$sex)
+ftm_pml$sex<-gsub("ind_fem_mass", "Female", ftm_pml$sex)
+ftm_pml$sex<-gsub("ind_male_mass", "Male", ftm_pml$sex)
+
+#subset long data frame for wasp mass to merge with long dataframe for wasp num_ecl
+ftm_pml <- select(ftm_pml, bug_id, treat_heat, sex, mass)
+
+#merge the two long dataframes
+ftm_pl <- merge(ftm_pl, ftm_pml, by=c("bug_id", "treat_heat", "sex"))
 
 
+#-----------------
+
+#prelim wasp figures
+
+#set theme
 theme_set(theme_classic())
 
 #number of emerged wasps by treatment
@@ -89,7 +107,7 @@ ecl_em_plot+geom_point(
 
 #mass of male/female wasps by num ecl by treatment
 #number of male/female wasps by num ecl by treatment
-msex_ecl_plot<-ggplot(ftm_pml, aes(x=num_ecl, y=mass, group=sex, color=sex))
+msex_ecl_plot<-ggplot(ftm_pl, aes(x=num_ecl, y=mass, group=sex, color=sex))
 msex_ecl_plot+geom_point(
 )+geom_smooth(method="lm"
 )+scale_color_manual(values=c("black", "orange"),
@@ -99,7 +117,7 @@ msex_ecl_plot+geom_point(
 
 #mass of male/female wasps by num ecl by treatment
 #number of male/female wasps by num ecl by treatment
-msex_em_plot<-ggplot(ftm_pml, aes(x=num_em, y=mass, group=sex, color=sex))
+msex_em_plot<-ggplot(ftm_pl, aes(x=num_em, y=mass, group=sex, color=sex))
 msex_em_plot+geom_point(
 )+geom_smooth(method="lm"
 )+scale_color_manual(values=c("black", "orange"),
@@ -107,18 +125,30 @@ msex_em_plot+geom_point(
 )+facet_wrap(treat_heat~plot_id)
 
 
+#boxplot of wasp adult mass
+wadmass_boxplot <- ggplot(ftm_pl, aes(x=treat_heat, y=mass, group=interaction(sex, treat_heat), fill=sex))
+wadmass_boxplot+geom_boxplot(
+)+facet_wrap(~plot_id)
+
 #-------------------------
 
 #plotting data for subset of hosts and wasps that I have dissected so far
 
 #create a sorting column to keep only parasitized hosts with emergence that I have dissected
+
+#wide dataframe
 ftm_p$num_unem[is.na(ftm_p$num_unem)]<-0
 
+#long dataframe
+ftm_pl$num_unem[is.na(ftm_pl$num_unem)]<-0
+
+#create sorting column for wide and long dataframes
 ftm_p$keep_dis <- ifelse(ftm_p$num_unem>0, 1, 0)
+ftm_pl$keep_dis <- ifelse(ftm_pl$num_unem>0, 1, 0)
 
 #subset to only dissected hosts
 ftm_pdis <- subset(ftm_p, keep_dis==1)
-
+ftm_pld <- subset(ftm_pl, keep_dis==1)
 
 
 #plot prop ecl by load
@@ -126,6 +156,12 @@ psecl_ld_plot <- ggplot(ftm_pdis, aes(x=load, y=ps_ld_ecl, group=treat_heat, col
 psecl_ld_plot+geom_point(size=4
 )+geom_smooth(method="lm", se=FALSE
 )+facet_wrap(~plot_id)
+
+#combining plot_ids together 
+psecl_ld_plot2 <- ggplot(ftm_pdis, aes(x=load, y=ps_ld_ecl, group=treat_heat, color=treat_heat))
+psecl_ld_plot2+geom_point(size=4
+)+geom_smooth(method="lm", se=FALSE)
+
 
 
 #box plot of prop ecl
@@ -135,9 +171,41 @@ psecl_boxplot+geom_boxplot(
 
 
 
+#wasp adult mass by sex and load
+wadmass_sxld_plot <- ggplot(ftm_pld, aes(x=load, y=mass, group=sex, color=sex))
+wadmass_sxld_plot+geom_point(size=3
+)+geom_smooth(method = "lm"
+)+facet_wrap(treat_heat~plot_id)
 
 
 
+#wasp adult mass by sex and load--combining plots
+wadmass_sxld_plot2 <- ggplot(ftm_pld, aes(x=load, y=mass, group=sex, color=sex))
+wadmass_sxld_plot2+geom_point(size=3
+)+geom_smooth(method = "lm"
+)+facet_wrap(~treat_heat)
+
+
+
+#wasp adult mass by sex, by proportion that survived to eclosion (ecl/load)
+wadmass_sxpsecl_plot <- ggplot(ftm_pld, aes(x=ps_ld_ecl, y=mass, group=sex, color=sex))
+wadmass_sxpsecl_plot+geom_point(size=3
+)+geom_smooth(method="lm"
+)+facet_wrap(treat_heat~plot_id)
+
+
+#wasp adult mass by sex, by proportion that survived to eclosion (ecl/load)--combining plots
+wadmass_sxpsecl_plot2 <- ggplot(ftm_pld, aes(x=ps_ld_ecl, y=mass, group=sex, color=sex))
+wadmass_sxpsecl_plot2+geom_point(size=3
+)+geom_smooth(method="lm"
+)+facet_wrap(~treat_heat)
+
+
+#wasp adult mass by sex, by proportion that survived to eclosion (ecl/em)--combining plots
+wadmass_sxpsecl_em_plot <- ggplot(ftm_pld, aes(x=ps_em_ecl, y=mass, group=sex, color=sex))
+wadmass_sxpsecl_em_plot+geom_point(size=3
+)+geom_smooth(method="lm"
+)+facet_wrap(~treat_heat)
 
 #-------------------------
 
@@ -233,8 +301,16 @@ anova(wecl_surv_mod2, test="F")
 summary(wecl_surv_mod2)
 
 
+#--------------------------------
 
+#quick analysis of adult wasp mass by load, treat heat and plot id
 
+wadmass_mod1 <- lme(mass ~ treat_heat * plot_id * load * sex, 
+                    random = ~1|bug_id,
+                    data = ftm_pl,
+                    na.action = na.omit,
+                    method = "ML")
+anova(wadmass_mod1)
 
 
 #--------------------------------
