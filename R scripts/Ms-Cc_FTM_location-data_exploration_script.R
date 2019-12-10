@@ -564,3 +564,21 @@ mn_sush_hght_p2_plot + geom_point(aes(shape=cen_time_ampm),
                      name="Census Time"
 )+facet_wrap(treat_heat~cen_stage)
 
+
+#---------------------------
+
+#plotting all obs by date_time for committee meeting--example of how much data I have
+
+#making a cen_time_dec column (cen_time / 24) to make a day fraction of time to add to cen_date
+ftm_lng$cen_time_dec <- ftm_lng$cen_time / 24
+
+#add cen_time_dec to cen_date
+ftm_lng$cen_date_time <- ftm_lng$cen_date + ftm_lng$cen_time_dec
+
+#make a numeric bug_id column
+ftm_lng$bug_idn <- as.factor(ftm_lng$bug_id)
+ftm_lng$bug_idn <- as.numeric(ftm_lng$bug_idn)
+
+loc_date_plot <- ggplot(ftm_lng, aes(x=cen_date_time, y=bug_idn, group=treat_para, color=treat_para))
+loc_date_plot + geom_jitter(size=4
+)+facet_wrap(~treat_heat)
