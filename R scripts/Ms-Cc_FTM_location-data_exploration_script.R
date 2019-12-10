@@ -7,7 +7,9 @@ library(Rmisc)
 library(dplyr)
 library(tidyr)
 library(plotly)
-
+library(lme4)
+library(fuzzyjoin)
+library(spatstat.utils)
 
 #load data
 
@@ -62,6 +64,9 @@ loc_barplot+geom_bar(position = "fill", stat="count"
 
 #remove em stage (usually in cups), 6 stage and 2 stage to simplify figure (assume the 2 is a typo)
 ftm_lng <- subset(ftm_lng, cen_stage!="2" & cen_stage!="6" & cen_stage!="em")
+
+#remove the height "u", is a typo
+ftm_lng <- subset(ftm_lng, height!="u")
 
 
 height_stage_plot <- ggplot(ftm_lng, aes(x=height, fill=treat_para))
@@ -582,3 +587,262 @@ ftm_lng$bug_idn <- as.numeric(ftm_lng$bug_idn)
 loc_date_plot <- ggplot(ftm_lng, aes(x=cen_date_time, y=bug_idn, group=treat_para, color=treat_para))
 loc_date_plot + geom_jitter(size=4
 )+facet_wrap(~treat_heat)
+
+
+
+
+#--------------------------
+
+#plotting individual height by date_time
+
+#make a cen_date_time column
+ftm_lng$cen_time_dec <- ftm_lng$cen_time/24
+ftm_lng$cen_date_time <- ftm_lng$cen_date + ftm_lng$cen_time_dec
+
+
+#make cen_stage a factor
+ftm_lng$cen_stage <- as.factor(ftm_lng$cen_stage)
+
+#make height a factor, order levels
+ftm_lng$height <- factor(ftm_lng$height, levels = c("h", "m", "l"))
+
+#subset by plot
+ftm_pl1 <- subset(ftm_lng, plot_id=="plot1")
+ftm_pl2 <- subset(ftm_lng, plot_id=="plot2")
+
+#plot hght by census time for each individual caterpillar--plot1
+hght_time_ind_plot <- ggplot(ftm_pl1, aes(x=cen_date_time, y=bug_id, color=height))
+hght_time_ind_plot+geom_jitter(aes(shape=cen_stage)
+)+geom_line(
+)+facet_wrap(treat_para~treat_heat)
+
+#plot hght by census time for each individual caterpillar--2
+hght_time_ind_plot2 <- ggplot(ftm_pl2, aes(x=cen_date_time, y=bug_id, color=height))
+hght_time_ind_plot2+geom_jitter(aes(shape=cen_stage)
+)+geom_line(
+)+facet_wrap(treat_para~treat_heat)
+
+
+#---------------------
+
+#preliminary analyses for Joel to see if para and unpara are doing different things
+
+#analyzing plots separately
+#attempting a glm with poisson distribution (because I have count data)
+hght_pois_mod <- glm(hght_num ~ treat_heat*treat_para*cen_stage,
+                     data=ftm_pl1, 
+                     family = "poisson",
+                     na.action = na.omit)
+
+anova(hght_pois_mod)
+summary(hght_pois_mod)
+
+
+#adding a random intercept of individual--throws several warnings
+hghtpoiss_re_mod <- glmer(hght_num ~ treat_heat*treat_para*cen_stage + (1|bug_id),
+                          data=ftm_pl1, 
+                          family = "poisson",
+                          na.action = na.omit)
+
+
+
+
+#-------------------------------
+
+#attempting to match temp data from datalogger with obs loc data
+
+#load datalogger data:
+dlt_lng <- read_csv("data/temp_data/Ms-Cc_FTM_datalogger_temp_ed_lng.csv")
+
+
+#make a summary table of mean temp at each date_time stamp, by treat_hs and loc on plant
+temp_sum <- summarySE(dlt_lng, measurevar = "temp",
+                      groupvars = c("date_time_j", "treat_hs", "loc"),
+                      na.rm = TRUE)
+temp_sum
+
+
+#rename loc values to be the same as height in ftm_lng
+temp_sum$loc <- ifelse(temp_sum$loc=="h_un_sh", "h",
+                       ifelse(temp_sum$loc=="m_un_sh", "m",
+                              ifelse(temp_sum$loc=="l_un_sh", "l", "unk")))
+
+
+
+#make a cen_date_time column for ftm_lng
+ftm_lng$cen_time_dec <- ftm_lng$cen_time/24
+ftm_lng$cen_date_time <- ftm_lng$cen_date + ftm_lng$cen_time_dec
+
+
+#attempting to make a date_time_end column, so that I have 2 columns that create a range
+  ##then I can hopefully match the cen_date_time to the range that has the temp when the census was taken
+  ##could do this by trying to match the start date_time and add the next step in the sequence, but that
+  ##seemed complicated to figure out. Instead, have just added the time interval (10 min = .007) to each  
+  ##step. This means every other step is off by .0001, because some are .0069 and some are .007. I don' think 
+  ##this will cause too many problems, though?
+
+temp_sum$date_time_end <- temp_sum$date_time_j + .007
+
+
+#attempting to match the cen_date time with the range of date_time_j and date_time_end, and pull that temp
+  ##value from the data logger. Need to match location on plant and treat_heat too
+
+test_dat <- ftm_lng
+
+#did not work, unsurprisingly
+test_dat$temp <- ifelse(test_dat$cen_date_time >= temp_sum$date_time_end 
+                        & test_dat$cen_date_time <= temp_sum$date_time_j 
+                        & test_dat$treat_heat == temp_sum$treat_hs
+                        & test_dat$height == temp_sum$loc, temp_sum$temp, 0)
+
+
+
+
+
+#Only thing that has worked, but it only returns a binary match response (0,1), but no info about which 
+  ##row matches what
+  ##adapted from: https://stackoverflow.com/questions/53307707/compare-multiple-columns-in-2-different-dataframes-in-r
+
+temp1.df$new_mpg<-apply(temp1.df, 1, function(x) {
+  temp<-temp2.df[temp2.df$Cyl==x[],] 
+  ifelse(any(apply(temp, 1, function(y) {
+    dplyr::between(as.numeric(x[1]),as.numeric(y[2]),as.numeric(y[3]))
+  })),1,0)
+})
+
+
+test_dat$match <- apply(test_dat, 1, function(x){
+  treat <- temp_sum[temp_sum$treat_hs==x[7],]
+  ifelse(any(apply(treat, 1, function(y){
+    dplyr::between(as.numeric(x[198]), as.numeric(y[1]), as.numeric(y[9]))
+  })), 1, 0)
+})
+
+
+
+
+
+#trying with fuzzy_join function--sort of worked, but dulicated rows a ton 
+
+#pare down temp_sum to only columns needed
+temp_sum_sel <- select(temp_sum, date_time_j, date_time_end, treat_hs, loc, temp)
+
+fuzzy_left_join(X, Y[-1], by = c("number" = "number1", "number" = "number2"), 
+                match_fun  =list(`>=`, `<=`)) %>% 
+  mutate(found = c(NA, "YES")[(!is.na(number1)) + 1]) %>% 
+  select(names(X))
+
+
+test_dat2 <- fuzzy_left_join(test_dat, temp_sum_sel, 
+                             by=c("cen_date_time" = "date_time_j", "cen_date_time" = "date_time_end"),
+                             match_fun=list(`>=`, `<=`))
+
+
+
+#trying to make time step labels using findInterval
+  ##don't think this actually helps, but I did it yay
+
+date_time_unq <- unique(temp_sum$date_time_j)
+
+temp_sum$time_step <- findInterval(temp_sum$date_time_j, date_time_unq)
+
+
+test_dat$time_step <- ifelse(test_dat$cen_date_time <= temp_sum$date_time_end &
+                               test_dat$cen_date_time >= temp_sum$date_time_j, temp_sum$time_step, 0)
+
+
+
+
+#trying something with functions
+
+j.date<-function(x){
+  strptime(x, "%m/%d")$yday+1
+}
+
+lapj.date<-function(df){
+  date.j<-lapply(df[,grep("date.",colnames(df))],j.date)
+  date.j<-as.data.frame(date.j)
+  colnames(date.j)<-paste(colnames(date.j), "j", sep = ".")
+  output.df<-cbind(df,date.j)
+  output.df
+}
+
+
+check.int <- function(df1, df2){
+  (df1[1, "cen_date_time"] >= df2[1, "date_time_j"] & df1[1, "cen_date_time"] <= df2[1, "date_time_end"])
+}
+
+
+check.int2 <- function(x, df2){
+  (x >= df2[1, "date_time_j"] & x <= df2[1, "date_time_end"])
+}
+
+
+check.int3 <- function(x, y, z){
+  (x >= y & x <= z)
+}
+
+
+check.int3(test_dat$cen_date_time, temp_sum$date_time_j, temp_sum$date_time_end)
+
+
+test_match <- lapply()
+
+
+
+
+
+
+
+
+
+
+test_dat[1, "cen_date_time"] >= temp_sum[1, "date_time_j"] & test_dat[1, "cen_date_time"] <= temp_sum[1, "date_time_end"]
+
+between(test_dat[1, "cen_date_time"], temp_sum[1, "date_time_j"], temp_sum[1, "date_time_end"])
+
+
+
+
+
+
+locationok  <- lapply(y$location, function(z) z >= x$from & z <= x$to)
+
+datetime_ok <- lapply(test_dat$cen_date_time, function(x) x >= temp_sum$date_time_j & x <= temp_sum$date_time_end)
+
+ddply(df1, .(name), function(x) {
+  df2[(x$Position - df2$start_position) < 100000 | 
+        (x$Position - df2$end_position) < 100000, ]
+})
+
+
+ddply(df1, .(name), function(x) { 
+  df2[(x$Position - df2$start_position) < 100000 |
+        (x$Position - df2$end_position) < 100000, ] }) 
+
+
+
+#ddply(test_dat, .(bug_id), function(x){
+ # temp_sum[()]
+#})
+
+
+#try separating temp_sum by loc and treat_hs
+temp_sum_hsh <- subset(temp_sum, treat_hs=="hs" & loc=="h")
+
+test_dat_hsh <- subset(test_dat, treat_heat=="hs" & height=="h")
+
+
+
+
+
+#adfgsgfh
+
+df %>% filter_at(vars(col1, col2), any_vars(. %in% c('M017', 'M018')))      
+
+test <- filter_at()
+
+
+
+
+between(test_dat[198], temp_sum[1], temp_sum[9])
