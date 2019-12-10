@@ -423,10 +423,310 @@ lmass_mod2 <- lme(log_mass ~ treat_heat*obs_treatp*plot_id,
                   control=lmeControl(msMaxIter = 1000))
 
 
+#------------------------------
+
+#calculating delta mass and delta age to analyze Ms growth and dev time
+
+ftm_cl$dlta_mss <- log(ftm_cl$mass_end) - log(ftm_cl$mass_3)
+ftm_cl$dlta_age <- ftm_cl$ttend - ftm_cl$tt3
+
+
+#find mn and se of delta mass and age
+dm_sum <- summarySE(ftm_cl, measurevar = "dlta_mss",
+                    groupvars = c("treat_heat", "plot_id", "obs_treatp"),
+                    na.rm = TRUE)
+dm_sum
+
+
+da_sum <- summarySE(ftm_cl, measurevar = "dlta_age",
+                    groupvars = c("treat_heat", "plot_id", "obs_treatp"),
+                    na.rm = TRUE)
+da_sum
+
+
+
+#plot mn delta mass
+mn_dm_plot <- ggplot(dm_sum, aes(x=treat_heat, y=dlta_mss, group=obs_treatp, color=obs_treatp))
+mn_dm_plot+geom_point(size=5
+)+geom_line(aes(linetype=obs_treatp),
+            size=1.5
+)+geom_errorbar(aes(ymin=dlta_mss-se, ymax=dlta_mss+se),
+                width=.5, size=1
+)+facet_wrap(~plot_id)
+
+
+#plot mn delta age
+mn_da_plot <- ggplot(da_sum, aes(x=treat_heat, y=dlta_age, group=obs_treatp, color=obs_treatp))
+mn_da_plot+geom_point(size=5
+)+geom_line(aes(linetype=obs_treatp),
+            size=1.5
+)+geom_errorbar(aes(ymin=dlta_age-se, ymax=dlta_age+se),
+                width=.5, size=1
+)+facet_wrap(~plot_id)
+
+
+#------------------
+
+#analyze delta mass and delta age with lm models
+
+dm_mod1 <- lm(dlta_mss ~ treat_heat*obs_treatp*plot_id,
+              data=ftm_cl,
+              na.action = na.omit)
+anova(dm_mod1)
+summary(dm_mod1)
+
+
+
+da_mod1 <- lm(dlta_age ~ treat_heat*obs_treatp*plot_id,
+              data=ftm_cl,
+              na.action = na.omit)
+anova(da_mod1)
+summary(da_mod1)
+
+
+
+#------------------------
+
+#quick and dirty analysis of number of wasp survival to emergence and eclosion 
+
+#survival to emergence (number)--wide data frame
+numem_mod1 <- lme(num_em ~ treat_heat*plot_id,
+                  random= ~1|bug_id,
+                 data=ftm_p,
+                 method="ML",
+                 na.action = na.omit)
+
+anova(numem_mod1)
+summary(numem_mod1)
+
+
+#survival to eclosion (number)--long data frame, incorporating sex
+numecl_mod1 <- lme(ecl ~ treat_heat*plot_id*sex,
+                   random= ~1|bug_id,
+                   data=ftm_pl,
+                   method="ML",
+                   na.action = na.omit)
+anova(numecl_mod1)
+summary(numecl_mod1)
+
+#------------------------
+
+#quick and dirty analysis of wasp adult mass
+
+wadmss_mod1 <- lme(mass ~ treat_heat*plot_id*sex,
+                   random= ~1|bug_id,
+                   data=ftm_pl,
+                   method="ML",
+                   na.action = na.omit)
+anova(wadmss_mod1)
+summary(wadmss_mod1)
+
+
+#--------------
+
+#wasp survival and adult mass plots
+
+#Calculate mn and se of num ecl
+wsex_sum<-summarySE(ftm_pl, measurevar = "ecl",
+                    groupvars = c("plot_id","treat_heat", "sex"),
+                    na.rm = TRUE)
+wsex_sum
+
+
+#plot mn survival to eclosion by sex (number)
+mn_numecl_plot <- ggplot(wsex_sum, aes(x=treat_heat, y=ecl, group=sex, color=sex))
+mn_numecl_plot+geom_point(size=6
+)+geom_line(aes(linetype=sex),
+            size=1.5
+)+geom_errorbar(aes(ymin=ecl-se, ymax=ecl+se),
+                width=.5, size=1.2
+)+facet_wrap(~plot_id)
 
 
 
 
+#calculate mn and se of wasp adult mass
+wmass_sum<-summarySE(ftm_pl, measurevar = "mass",
+                     groupvars = c("plot_id","treat_heat", "sex"),
+                     na.rm = TRUE)
+wmass_sum
+
+
+#plot mn wasp mass at eclosion by sex
+mn_wadmss_plot <- ggplot(wmass_sum, aes(x=treat_heat, y=mass, group=sex, color=sex))
+mn_wadmss_plot+geom_point(size=6
+)+geom_line(aes(linetype=sex),
+            size=1.5
+)+geom_errorbar(aes(ymin=mass-se, ymax=mass+se),
+                width=.5, size=1.2
+)+facet_wrap(~plot_id)
+
+
+
+#---------------------
+#FORMATTING DATA TO PLOT GROWTH CURVES FOR P AND NP M SEXTA (LOG(MASS) x AGE)
+##not really curves, I guess, since I only have mass at 3rd and mass at end
+
+#convert mass_48em column to a character
+ftm_cl$mass_48em <- as.numeric(ftm_cl$mass_48em)
+
+#create a column "mass_end" that combines mass columns for wandering and emergence
+ftm_cl$mass_end <- coalesce(ftm_cl$mass_wand, ftm_cl$mass_48em)
+
+#create a column "ttend" that combines age columns for wandering and emergence
+ftm_cl$ttend <- coalesce(ftm_cl$ttw, ftm_cl$ttem_h)
+
+#create a column "stage_end" to indicate whether the individual wandered or had emergence
+ftm_cl$date_wand.j[is.na(ftm_cl$date_wand.j)]<-0
+ftm_cl$date_em.j[is.na(ftm_cl$date_em.j)]<-0
+
+ftm_cl$stage_end <- ifelse(ftm_cl$date_wand.j>0, "wand", "em")
+
+#create an observed treat_para column, to account for individuals that wandered when they were supposed to 
+##be parasitized and vice versa
+ftm_cl$obs_treatp <- ifelse(ftm_cl$date_wand.j, "obs_np", "obs_p")
+
+
+#create a long data frame for mass at 3rd, mass at wandering and mass at emergence
+ftm_lm <- gather(ftm_cl, stage, mass, mass_3, mass_end)
+ftm_lm$stage <- gsub("mass_", "", ftm_lm$stage)
+
+#replace "end" in stage column with wand or em, based off stage_end column
+ftm_lm$stage <- ifelse(ftm_lm$stage=="3", "3",
+                       ifelse(ftm_lm$stage_end=="wand", "wand",
+                              ifelse(ftm_lm$stage_end=="em", "em", 0)))
+
+
+#creat a long dataframe for age at 3rd, wandering and emergence
+ftm_la <- gather(ftm_cl, stage, age, tt3, ttend)
+ftm_la$stage <- gsub("tt", "", ftm_la$stage)
+
+#replace "end" in stage column with wand or em, based off stage_end column
+ftm_la$stage <- ifelse(ftm_la$stage=="3", "3",
+                       ifelse(ftm_la$stage_end=="wand", "wand",
+                              ifelse(ftm_la$stage_end=="em", "em", 0)))
+
+
+#subset to only id and data columns needed for merging
+ftm_la <- select(ftm_la, bug_id, stage, age)
+
+#merge long dataframes together
+ftm_lam <- merge(ftm_lm, ftm_la, by=c("bug_id", "stage"))
+View(ftm_lam)
+
+
+#----------------------
+
+#PLOT GROWTH CURVES FOR P AND NP M SEXTA (LOG(MASS) x AGE)
+
+#create column with logged mass
+ftm_lam$log_mass <- log(ftm_lam$mass)
+
+#mean and SE of log mass for obs P and NP hosts 
+lm_sum <- summarySE(ftm_lam, measurevar = "log_mass",
+                    groupvars = c("treat_heat", "plot_id", "obs_treatp", "stage"),
+                    na.rm = TRUE)
+lm_sum
+
+
+#mean and SE of age for obs P and NP hosts
+age_sum <- summarySE(ftm_lam, measurevar = "age",
+                     groupvars = c("treat_heat", "plot_id", "obs_treatp", "stage"),
+                     na.rm = TRUE)
+age_sum
+
+
+#add age_sum columns to log mass summary
+lm_sum$age <- age_sum[, 6]
+lm_sum$age_se <- age_sum[, 8]
+
+
+#plot mean age and mass at 3rd and wandering (group of treat_heat and obs_treatp, color by treat_heat,
+## color by obs_treatp, facet_wrap by plot_id)
+mn_ma_plot <- ggplot(lm_sum, aes(x=age, y=log_mass, group=interaction(treat_heat, obs_treatp), 
+                                 color=treat_heat))
+mn_ma_plot+geom_point(size=6
+)+geom_line(aes(linetype=obs_treatp),
+            size=1.5
+)+geom_errorbar(aes(ymin=log_mass-se, ymax=log_mass+se),
+                width=.5, size=1
+)+geom_errorbarh(aes(xmin=age-age_se, xmax=age+age_se),
+                 height=.5, size=1
+)+scale_color_manual(values=c("#999999", "black"),
+                     breaks=c("con", "hs"),
+                     labels=c("Grey", "Black"),
+                     name="Weed Barrier"
+)+scale_linetype_manual(values=c("solid", "dashed"),
+                        breaks=c("obs_np", "obs_p"),
+                        labels=c("NP", "P"),
+                        name="Para Treatment"
+)+facet_wrap(~plot_id)
+
+
+
+mn_ma_plot1.5 <- ggplot(lm_sum, aes(x=age, y=log_mass, group=interaction(plot_id, obs_treatp), 
+                                    color=plot_id))
+mn_ma_plot1.5+geom_point(size=6
+)+geom_line(aes(linetype=obs_treatp),
+            size=1.5
+)+geom_errorbar(aes(ymin=log_mass-se, ymax=log_mass+se),
+                width=.5, size=1
+)+geom_errorbarh(aes(xmin=age-age_se, xmax=age+age_se),
+                 height=.5, size=1
+)+scale_color_manual(values=c("#999999", "black"),
+                     breaks=c("plot1", "plot2"),
+                     labels=c("Plot 1", "Plot 2"),
+                     name="Plot"
+)+scale_linetype_manual(values=c("solid", "dashed"),
+                        breaks=c("obs_np", "obs_p"),
+                        labels=c("NP", "P"),
+                        name="Para Treatment"
+)+facet_wrap(~treat_heat)
+
+
+
+
+
+#try without separating by plot
+#create column with logged mass
+ftm_lam$log_mass <- log(ftm_lam$mass)
+
+#mean and SE of log mass for obs P and NP hosts 
+lm_sum2 <- summarySE(ftm_lam, measurevar = "log_mass",
+                     groupvars = c("treat_heat", "obs_treatp", "stage"),
+                     na.rm = TRUE)
+lm_sum2
+
+
+#mean and SE of age for obs P and NP hosts
+age_sum2 <- summarySE(ftm_lam, measurevar = "age",
+                      groupvars = c("treat_heat", "obs_treatp", "stage"),
+                      na.rm = TRUE)
+age_sum2
+
+
+#add age_sum columns to log mass summary
+lm_sum2$age <- age_sum2[, 5]
+lm_sum2$age_se <- age_sum2[, 7]
+
+
+mn_ma_plot2 <- ggplot(lm_sum2, aes(x=age, y=log_mass, group=treat_heat, color=treat_heat))
+mn_ma_plot2+geom_point(size=6
+)+geom_line(aes(linetype=obs_treatp),
+            size=1.5
+)+geom_errorbar(aes(ymin=log_mass-se, ymax=log_mass+se),
+                width=.5, size=1
+)+geom_errorbarh(aes(xmin=age-age_se, xmax=age+age_se),
+                 height=.5, size=1
+)+scale_color_manual(values=c("#999999", "black"),
+                     breaks=c("con", "hs"),
+                     labels=c("Grey", "Black"),
+                     name="Weed Barrier"
+)+scale_linetype_manual(values=c("solid", "dashed"),
+                        breaks=c("obs_np", "obs_p"),
+                        labels=c("NP", "P"),
+                        name="Para Treatment"
+)+facet_wrap(~obs_treatp)
 
 
 
