@@ -22,9 +22,746 @@ Two field plots were established (12m x 10m each) in the experimental area of Ma
 
 ![Fig 1. Plot lay out](plots/plant_array.png)
 
-The experimental design consisted of a 2x2 factorial design, with two parasitization treatments (NP and P) and two weed barrier treatments (black and grey). Caterpillars were reared in the lab at 25+/-10 from hatching to the 3rd instar on fresh tobacco leaves. At the 3rd instar, they were massed and assigned to a parasitization and weed barrier treatment, and assigned to a specific plant in one of the plots. Each plant was assigned two caterpillars, in either a NP, P or P, P combination. 
+Temperature in the field was measured and recorded with a datalogger, using thermoconductive caterpillars models with inserted thermocouples. 20 models were placed in plot 1 for the duration of the experiment. 10 models were placed on plants in the black weed barrier treatment, and 10 on plants in the grey. Models were placed on the underside of leaves along the midvein, where *M. sexta* caterpillars often rest when not feeding. Models were placed at varying heights (high, middle or low) on the plants. 
+
+The experimental design consisted of a 2x2 factorial design, with two parasitization treatments (NP and P) and two weed barrier treatments (black and grey). Caterpillars were reared in the lab at 25+/-10 from hatching to the 3rd instar on fresh tobacco leaves. At the 3rd instar, they were massed and assigned to a parasitization and weed barrier treatment, and assigned to a specific plant in one of the plots. Each plant was assigned two caterpillars, in either a NP, P or P, P combination. On day 0 of the 3rd instar, caterpillars in the P treatment were parasitized. All 3rd instars were returned to containers with fresh tobacco leaves at 25+/-10 until day 1 of the 3rd instar, when they were transported to the field and placed on their assigned plant. 
+
+Daily censes were conducted to monitor caterpillar survival, development, and behavior. Caterpillar presence and location on the plant was recorded each day, including height on plant (high, middle, low), leaf surface (upper or under) and if it was in the sun or shade. If a caterpillar was not found 2 days in a row, it was recorded as dead. Dead caterpillars were replaced if there were enough reared caterpillars in lab at the 3rd instar. Development time was recorded at each molt. Caterpillars were collected off the plants and returned to lab 3-4 days after molt to the 5th instar for the NP treatment, and 4-5 days for the P treatment. Date and mass at wandering were recorded for NP caterpillars. Date at wasp emergence and mass 48 hours after wasp emergence was recorded for the P treatment. Wasp cocoons were removed from the host 48 hours after wasp emergence, and placed at 25+/-10 until adult eclosion. Hosts were frozen for future dissection to determine total parasitoid load. Wasp survival was recorded at emergence, cocoon formation and eclosion. After eclosion, adult wasps were frozen and sexed under a dissecting scope. Males and females were grouped by sex, and weighed en masse. The group mass was divided by the number of individuals to obtain the mean adult wasp mass for each sex for each host. 
 
 
+##Proposed analyses:
+
+###Caterpillar mass and development time
+
+So far, I have analyzed caterpillar mass and development time data using separate linear models, with the change in mass (final mass - initial mass) and age (final age - initial age) as the response variables, and weed barrier treatment, parasitization treatment and plot as fixed effects. 
+
+
+```{r, include=FALSE, echo=FALSE}
+
+#load libraries
+library(scales)
+library(readr)
+library(nlme)
+library(ggplot2)
+library(Rmisc)
+library(dplyr)
+library(tidyr)
+library(extrafont)
+library(viridis)
+library(lme4)
+
+#load data
+ftm <- read_csv("data/Ms-Cc_FTM_incomp_ed-raw.csv", 
+                                        col_types = cols(treat_heat = col_factor(levels = c("con", "hs")), 
+                                                         treat_para = col_factor(levels = c("p", "np"))))
+
+View(ftm)
+
+
+ftm_cl <- read_csv("data/Ms-Cc_FTM_incomp_clean.csv",
+                   col_types = cols(plot_id = col_factor(levels = c("plot1","plot2")), 
+                                    treat_heat = col_factor(levels = c("con", "hs")), 
+                                    treat_para = col_factor(levels = c("np", "p"))))
+View(ftm_cl)
+
+
+#convert mass_48em column to numeric
+ftm_cl$mass_48em <- as.numeric(ftm_cl$mass_48em)
+
+#create a column "mass_end" that combines mass columns for wandering and emergence
+ftm_cl$mass_end <- coalesce(ftm_cl$mass_wand, ftm_cl$mass_48em)
+
+#create a column "ttend" that combines age columns for wandering and emergence
+ftm_cl$ttend <- coalesce(ftm_cl$ttw, ftm_cl$ttem_h)
+
+#create a column "stage_end" to indicate whether the individual wandered or had emergence
+ftm_cl$date_wand.j[is.na(ftm_cl$date_wand.j)]<-0
+ftm_cl$date_em.j[is.na(ftm_cl$date_em.j)]<-0
+
+ftm_cl$stage_end <- ifelse(ftm_cl$date_wand.j>0, "wand", "em")
+
+#create an observed treat_para column, to account for individuals that wandered when they were supposed to 
+##be parasitized and vice versa
+ftm_cl$obs_treatp <- ifelse(ftm_cl$date_wand.j, "obs_np", "obs_p")
+
+
+
+
+#calculating delta mass and delta age to analyze Ms growth and dev time
+
+ftm_cl$dlta_mss <- log(ftm_cl$mass_end) - log(ftm_cl$mass_3)
+ftm_cl$dlta_age <- ftm_cl$ttend - ftm_cl$tt3
+
+
+```
+
+
+```{r}
+
+#analyze delta mass and delta age with lm models
+
+dm_mod1 <- lm(dlta_mss ~ treat_heat*obs_treatp*plot_id,
+              data=ftm_cl,
+              na.action = na.omit)
+anova(dm_mod1)
+summary(dm_mod1)
+
+
+
+da_mod1 <- lm(dlta_age ~ treat_heat*obs_treatp*plot_id,
+              data=ftm_cl,
+              na.action = na.omit)
+anova(da_mod1)
+summary(da_mod1)
+
+```
+
+
+These preliminary analyses indicate that my temperature manipulation treatment did not have strong effects on caterpillar mass gain or development time. For the change in mass, parasitization treatment, plot and the interaction between them seemed to have strong effects. Parasitized caterpillars had a smaller change in mass than the NP treatment. Individuals were smaller if they were reared in plot 2, especially if they were parasitized. For development time from 3rd to wandering or wasp emergence, only parasitization treatment (P caterpillars had longer development times) and plot (plot 2 took longer to develop across all treatments).
+
+For future work with these analyses, I plan to investigate the effect of assigned plant on mass and development time. If inter-plant variation seems strong, I will investigate if it is appropriate to include plant as a randome effect in my linear models. See below for plots of change in mass and development time for *M. sexta*.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+
+#set theme
+theme_set(theme_classic())
+
+#find mn and se of delta mass 
+dm_sum <- summarySE(ftm_cl, measurevar = "dlta_mss",
+                    groupvars = c("treat_heat", "plot_id", "obs_treatp"),
+                    na.rm = TRUE)
+dm_sum
+
+
+#find mn and se of delta age
+da_sum <- summarySE(ftm_cl, measurevar = "dlta_age",
+                    groupvars = c("treat_heat", "plot_id", "obs_treatp"),
+                    na.rm = TRUE)
+da_sum
+
+
+#make label vector for facet wrap plot_id names
+fplot_labs <- c(plot1 = "Plot 1", plot2 = "Plot 2")
+
+
+#plot mn delta mass
+mn_dm_plot <- ggplot(dm_sum, aes(x=treat_heat, y=dlta_mss, group=obs_treatp, color=obs_treatp))
+mn_dm_plot+geom_point(size=5
+)+geom_line(aes(linetype=obs_treatp),
+            size=1.5
+)+geom_errorbar(aes(ymin=dlta_mss-se, ymax=dlta_mss+se),
+                width=.4, size=1
+)+scale_color_manual(values = c("#5F9ED1", "#D55E00"),
+                     breaks = c("obs_np", "obs_p"),
+                     labels = c("NP", "P")
+)+scale_linetype_manual(values = c("solid", "dashed"),
+                        breaks=c("obs_np", "obs_p"),
+                        labels=c("NP", "P")
+)+scale_x_discrete(breaks=c("con", "hs"),
+                   labels=c("Grey", "Black")
+)+labs(x="Weed Barrier Treatment", y=expression(Delta* "Mass")
+)+facet_wrap(~plot_id, labeller=labeller(plot_id = fplot_labs)
+)+theme(text = element_text(family=("Cambria")),
+        axis.line.x=element_line(colour = 'black', size = 2),
+        axis.line.y=element_line(colour = 'black', size = 2),
+        axis.ticks = element_line(colour = 'black', size = 2),
+        axis.ticks.length = unit(2.5, "mm"),
+        axis.text.x = element_text(size = 26, face = "bold", color="black"),
+        axis.text.y = element_text(size = 26,face = "bold", color="black"),
+        axis.title.x = element_text(size = 26, vjust=-.35,face = "bold",
+                                    margin = margin(t = 20, r = 0, b = 0, l = 0)),
+        axis.title.y = element_text(size = 26, vjust=1.5,face = "bold",
+                                    margin = margin(t = 0, r = 20, b = 0, l = 0)),  
+        #legend.position = c(0.9, 0.5),
+        legend.text = element_text(size=22, face = "bold"),
+        legend.title = element_blank(),
+        legend.key.width = unit(4,"line"),
+        strip.text = element_text(size=23, face="bold"),
+        strip.background = element_rect(size=2.5, fill="white"))
+
+```
+
+```{r,echo=FALSE, warning=FALSE, message=FALSE}
+#plot mn delta age
+mn_da_plot <- ggplot(da_sum, aes(x=treat_heat, y=dlta_age, group=obs_treatp, color=obs_treatp))
+mn_da_plot+geom_point(size=5
+)+geom_line(aes(linetype=obs_treatp),
+            size=1.5
+)+geom_errorbar(aes(ymin=dlta_age-se, ymax=dlta_age+se),
+                width=.4, size=1
+)+scale_color_manual(values = c("#5F9ED1", "#D55E00"),
+                     breaks = c("obs_np", "obs_p"),
+                     labels = c("NP", "P")
+)+scale_linetype_manual(values = c("solid", "dashed"),
+                        breaks=c("obs_np", "obs_p"),
+                        labels=c("NP", "P")
+)+scale_x_discrete(breaks=c("con", "hs"),
+                   labels=c("Grey", "Black")
+)+labs(x="Weed Barrier Treatment", y=expression(Delta* "Age")
+)+facet_wrap(~plot_id, labeller=labeller(plot_id = fplot_labs)
+)+theme(text = element_text(family=("Cambria")),
+        axis.line.x=element_line(colour = 'black', size = 2),
+        axis.line.y=element_line(colour = 'black', size = 2),
+        axis.ticks = element_line(colour = 'black', size = 2),
+        axis.ticks.length = unit(2.5, "mm"),
+        axis.text.x = element_text(size = 26, face = "bold", color="black"),
+        axis.text.y = element_text(size = 26,face = "bold", color="black"),
+        axis.title.x = element_text(size = 26, vjust=-.35,face = "bold",
+                                    margin = margin(t = 20, r = 0, b = 0, l = 0)),
+        axis.title.y = element_text(size = 26, vjust=1.5,face = "bold",
+                                    margin = margin(t = 0, r = 20, b = 0, l = 0)),  
+        #legend.position = c(0.9, 0.5),
+        legend.text = element_text(size=22, face = "bold"),
+        legend.title = element_blank(),
+        legend.key.width = unit(4,"line"),
+        strip.text = element_text(size=23, face="bold"),
+        strip.background = element_rect(size=2.5, fill="white"))
+
+```
+
+
+###Wasp survival 
+
+For wasp survival to eclosion, I am currently using a generalized linear mixed effects model on a subset of my data--using only wasps from hosts that I have dissected so that I have total load. 
+
+```{r, include=FALSE}
+
+#subset to only parasitized caterpillars
+ftm_cl$date_em.j[is.na(ftm_cl$date_em.j)]<-0
+ftm_p<-subset(ftm_cl, date_em.j>0)
+
+#subset out those left in field for wasp dev
+ftm_p<-subset(ftm_p, em_lab==1)
+
+#create a sorting column to keep only parasitized hosts with emergence that I have dissected
+ftm_p$num_unem[is.na(ftm_p$num_unem)]<-0
+ftm_p$keep_dis <- ifelse(ftm_p$num_unem>0, 1, 0)
+
+#subset to only dissected hosts
+ftm_pdis <- subset(ftm_p, keep_dis==1)
+
+```
+
+```{r}
+#calculate total number died for binomial glm
+ftm_pdis$tot_died <- ftm_pdis$load - ftm_pdis$num_ecl
+
+#rescale load
+ftm_pdis$resc_ld <- rescale(ftm_pdis$load, to=c(0,1))
+
+wecl_surv_mod1 <- glmer(cbind(num_ecl, tot_died) ~ treat_heat * plot_id * resc_ld + (1|bug_id),
+                      family = binomial,
+                      data=ftm_pdis,
+                      na.action = na.omit,
+                      control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=100000)))
+
+anova(wecl_surv_mod1, test="F")
+summary(wecl_surv_mod1)
+
+
+``` 
+
+I have not investigated this model in depth, as it is currently only running on a subset of my data. However, it seems that there may be an effect of weed barrier treatment (treat_heat), with the black weed barrier (treat_heaths) increasing wasp survival in comparison with the grey. This seems contradictory to what I see when I plot my data, but I have as yet not included sex in this model. See below for mean wasp survival of all treatments. 
+
+
+```{r, echo=FALSE}
+#subset to only parasitized caterpillars
+ftm_cl$date_em.j[is.na(ftm_cl$date_em.j)]<-0
+ftm_p<-subset(ftm_cl, date_em.j>0)
+
+#subset out those left in field for wasp dev
+ftm_p<-subset(ftm_p, em_lab==1)
+
+
+#make a long data set for wasp sex
+ftm_pl<-gather(ftm_p, sex, ecl, fem_ecl, male_ecl)
+ftm_pl$sex<-gsub("fem_ecl", "Female", ftm_pl$sex)
+ftm_pl$sex<-gsub("male_ecl", "Male", ftm_pl$sex)
+
+
+#make a long data set for wasp mass
+ftm_pml<-gather(ftm_p, sex, mass, ind_fem_mass, ind_male_mass)
+ftm_pml$sex<-gsub("ind_fem_mass", "Female", ftm_pml$sex)
+ftm_pml$sex<-gsub("ind_male_mass", "Male", ftm_pml$sex)
+
+#subset long data frame for wasp mass to merge with long dataframe for wasp num_ecl
+ftm_pml <- select(ftm_pml, bug_id, treat_heat, sex, mass)
+
+#merge the two long dataframes
+ftm_pl <- merge(ftm_pl, ftm_pml, by=c("bug_id", "treat_heat", "sex"))
+
+
+
+#Calculate mn and se of num ecl
+wsex_sum<-summarySE(ftm_pl, measurevar = "ecl",
+                    groupvars = c("plot_id","treat_heat", "sex"),
+                    na.rm = TRUE)
+wsex_sum
+
+
+#plot mn survival to eclosion by sex (number)
+mn_numecl_plot <- ggplot(wsex_sum, aes(x=treat_heat, y=ecl, group=sex, color=sex))
+mn_numecl_plot+geom_point(size=5
+)+geom_line(aes(linetype=sex),
+            size=1.5
+)+geom_errorbar(aes(ymin=ecl-se, ymax=ecl+se),
+                width=.4, size=1
+)+scale_color_manual(values = c("#E69F00", "#000000"),
+                     breaks = c("Male", "Female"),
+                     labels=c("Male", "Female")
+)+scale_linetype_manual(values=c("solid", "dashed"),
+                        breaks=c("Male", "Female"),
+                        labels=c("Male", "Female")
+)+scale_x_discrete(breaks=c("con", "hs"),
+                   labels=c("Grey", "Black")
+)+labs(x="Weed Barrier Treatment", y="Num. Eclosed"
+)+facet_wrap(~plot_id, labeller=labeller(plot_id = fplot_labs)
+)+theme(text = element_text(family=("Cambria")),
+        axis.line.x=element_line(colour = 'black', size = 2),
+        axis.line.y=element_line(colour = 'black', size = 2),
+        axis.ticks = element_line(colour = 'black', size = 2),
+        axis.ticks.length = unit(2.5, "mm"),
+        axis.text.x = element_text(size = 20, face = "bold", color="black"),
+        axis.text.y = element_text(size = 20,face = "bold", color="black"),
+        axis.title.x = element_text(size = 26, vjust=-.35,face = "bold",
+                                    margin = margin(t = 20, r = 0, b = 0, l = 0)),
+        axis.title.y = element_text(size = 26, vjust=1.5,face = "bold",
+                                    margin = margin(t = 0, r = 20, b = 0, l = 0)),  
+        #legend.position = c(0.9, 0.5),
+        legend.text = element_text(size=22, face = "bold"),
+        legend.title = element_blank(),
+        legend.key.width = unit(2,"line"),
+        strip.text = element_text(size=23, face="bold"),
+        strip.background = element_rect(size=2.5, fill="white"))
+
+
+
+```
+
+###Wasp adult mass:
+Currently, I am analyzing wasp adult mass a linear mixed model, with wasp adult mass (mean individual mass) as the response variable, weed barrier treatment, plot, load and sex as fixed effects and host ID as a random intercept. This model indicates that only sex had a strong affect on adult wasp mass, where females are larger across treatments. There is also a potential interaction between sex and weed barrier treatment. See below for the plot of mean wasp mass by sex, weed barrier treatment and plot.
+
+
+```{r}
+wadmass_mod1 <- lme(mass ~ treat_heat * plot_id * load * sex, 
+                    random = ~1|bug_id,
+                    data = ftm_pl,
+                    na.action = na.omit,
+                    method = "ML")
+anova(wadmass_mod1)
+summary(wadmass_mod1)
+
+
+
+```
+
+
+```{r, echo=FALSE}
+#calculate mn and se of wasp adult mass
+wmass_sum<-summarySE(ftm_pl, measurevar = "mass",
+                     groupvars = c("plot_id","treat_heat", "sex"),
+                     na.rm = TRUE)
+wmass_sum
+
+
+#plot mn adult wasp mass by sex 
+mn_wadmss_plot <- ggplot(wmass_sum, aes(x=treat_heat, y=mass, group=sex, color=sex))
+mn_wadmss_plot+geom_point(size=5
+)+geom_line(aes(linetype=sex),
+            size=1.5
+)+geom_errorbar(aes(ymin=mass-se, ymax=mass+se),
+                width=.4, size=1
+)+scale_color_manual(values = c("#E69F00", "#000000"),
+                     breaks = c("Male", "Female"),
+                     labels=c("Male", "Female")
+)+scale_linetype_manual(values=c("solid", "dashed"),
+                        breaks=c("Male", "Female"),
+                        labels=c("Male", "Female")
+)+scale_x_discrete(breaks=c("con", "hs"),
+                   labels=c("Grey", "Black")
+)+labs(x="Weed Barrier Treatment", y="Ind. Mass [mg]"
+)+facet_wrap(~plot_id, labeller=labeller(plot_id = fplot_labs)
+)+theme(text = element_text(family=("Cambria")),
+        axis.line.x=element_line(colour = 'black', size = 2),
+        axis.line.y=element_line(colour = 'black', size = 2),
+        axis.ticks = element_line(colour = 'black', size = 2),
+        axis.ticks.length = unit(2.5, "mm"),
+        axis.text.x = element_text(size = 20, face = "bold", color="black"),
+        axis.text.y = element_text(size = 20,face = "bold", color="black"),
+        axis.title.x = element_text(size = 26, vjust=-.35,face = "bold",
+                                    margin = margin(t = 20, r = 0, b = 0, l = 0)),
+        axis.title.y = element_text(size = 26, vjust=1.5,face = "bold",
+                                    margin = margin(t = 0, r = 20, b = 0, l = 0)),  
+        #legend.position = c(0.9, 0.5),
+        legend.text = element_text(size=22, face = "bold"),
+        legend.title = element_blank(),
+        legend.key.width = unit(2,"line"),
+        strip.text = element_text(size=23, face="bold"),
+        strip.background = element_rect(size=2.5, fill="white"))
+```
+
+
+
+###Datalogger temperature data
+
+I have conducted a few simple tests to examine whether my black weed barrier treatment increased the temperature of my field plots, and the caterpillars and plants in them. While it seems that there is a higher frequency of high temperatures in the black treatment, at least at midway up the plant, I will need to find more nuanced ways to examine the data to feel confident in these results. 
+
+
+```{r, include=FALSE}
+
+#load data
+
+dlt_lng <- read_csv("data/temp_data/Ms-Cc_FTM_datalogger_temp_ed_lng.csv")
+
+#order location data as factor
+dlt_lng$loc <- factor(dlt_lng$loc, levels = c("h_un_sh", "m_un_sh", "l_un_sh"))
+
+#make object for facet labelling
+dens_labs <- c(h_un_sh="High", m_un_sh="Middle", l_un_sh="Low")
+
+
+```
+
+```{r, echo=FALSE, warning=FALSE}
+
+#plot densities of temperature, grouped by treat_hs and loc
+tempdens_plot <- ggplot(dlt_lng, aes(x=temp, group=treat_hs, fill=treat_hs))
+tempdens_plot+geom_density(aes(color=treat_hs),
+                           alpha=.5, size=1.5
+)+scale_fill_manual(values = c("#8D8D8D", "black"),
+                    breaks=c("con", "hs"),
+                    labels=c("Grey WB", "Black WB")
+)+scale_color_manual(values = c("#8D8D8D", "black"),
+                     breaks=c("con", "hs"),
+                     labels=c("Grey WB", "Black WB")
+)+labs(x="Temperature [C]", y="Density"
+)+facet_wrap(~loc, labeller = labeller(loc = dens_labs)
+)+theme(text = element_text(family=("Cambria")),
+        axis.line.x=element_line(colour = 'black', size = 2),
+        axis.line.y=element_line(colour = 'black', size = 2),
+        axis.ticks = element_line(colour = 'black', size = 2),
+        axis.ticks.length = unit(2.5, "mm"),
+        axis.text.x = element_text(size = 18, face = "bold", color="black"),
+        axis.text.y = element_text(size = 18,face = "bold", color="black"),
+        axis.title.x = element_text(size = 26, vjust=-.35,face = "bold",
+                                    margin = margin(t = 20, r = 0, b = 0, l = 0)),
+        axis.title.y = element_text(size = 26, vjust=1.5,face = "bold",
+                                    margin = margin(t = 0, r = 20, b = 0, l = 0)),  
+        legend.position = "none",
+        legend.text = element_text(size=22, face = "bold"),
+        legend.title = element_blank(),
+        legend.key.width = unit(3,"line"),
+        strip.text = element_text(size=23, face="bold"),
+        strip.background = element_rect(size=2.5, fill="white"))
+
+
+```
+
+
+I have attempted to do this with a GAMM model (code included below, but not run due to length of processing), but need to make some adjustments. James suggested giving the GAMM a way to cycle over a 24 hours period, so the smoothing isn't trying to average over day and night time temperatures across the whole dataframe. I have not attempted to do so yet, but it's on the list of things to do. 
+
+```{r, eval=FALSE, echo=TRUE}
+
+#per James suggestion, try a GAMM of temp data
+
+dlt_tmp <- dlt_lng
+
+#subset to only columns in model, and remove rows with NAs (so that predicted and fitted values can be
+#added to the dataframe easily)
+dlt_tmp <- select(dlt_tmp, tc, treat_hs, loc, date_time_j, temp)
+dlt_tmp <- na.omit(dlt_tmp)
+
+
+#make tc a factor so it will run as a random effect
+dlt_tmp$tc <- factor(dlt_tmp$tc)
+
+gam_temp_mod <- gam(temp ~ s(date_time_j, by=interaction(treat_hs, loc, bs="ts"))
+                   + s(tc, bs="re") + treat_hs*loc,
+                    method="ML", data=dlt_tmp, na.action = na.omit)
+anova(gam_temp_mod)
+summary(gam_temp_mod)
+
+```
+
+
+###Caterpillar location data
+
+I have done some exploration of the behavioral location data I collected at each daily census. This data includes height on the plant (high, middle, low), leaf surface (upper, edge, under) and whether the caterpillar was in the sun or the shade. Due to the 3 dimensionality of this data, it has proven challenging to visualize and analyze. For now, I have mostly broken it down into separate components or pairs of components to try and see how the caterpillars are behaving on the plants. Some examples of my explorations can be see below. 
+
+
+```{r, echo=FALSE, include=FALSE}
+#load data
+
+#long format data frame of caterpillar census data
+ftm_lng <- read_csv("data/Ms-Cc_FTM_incomp_clean_lng.csv", 
+                    col_types = cols(plot_id = col_factor(levels = c("plot1","plot2")),
+                                     treat_heat = col_factor(levels = c("con", "hs")), 
+                                     treat_para = col_factor(levels = c("p", "np"))))
+
+
+#subset out some incorrect loc data that will be fixed in data sheet
+ftm_lng <- subset(ftm_lng, cen_loc!="veil")
+ftm_lng <- subset(ftm_lng, cen_loc!="onbv")
+ftm_lng <- subset(ftm_lng, cen_loc!="net")
+ftm_lng <- subset(ftm_lng, cen_loc!="8:04")
+
+
+#remove em stage (usually in cups), 6 stage and 2 stage to simplify figure (assume the 2 is a typo)
+ftm_lng <- subset(ftm_lng, cen_stage!="2" & cen_stage!="6" & cen_stage!="em")
+
+#remove the height "u", is a typo
+ftm_lng <- subset(ftm_lng, height!="u")
+
+#make height an ordered factor
+ftm_lng$height <- factor(ftm_lng$height, levels = c("h", "m", "l"))
+
+```
+
+I have plotted histograms of each location component separately, to see if caterpillars differ in their distribution on the plants by weed barrier treatment, parasitization treatment, or instar. I calculated the proportion of observations at each height (shown below), leaf surface and light (not shown), instead of counts, because there were differing numbers of observations depending on treatment and stage. 
+
+```{r, include=FALSE, echo=FALSE}
+
+#subset to only relevant columns
+ftm_loc_cnt <- ftm_lng %>% select(bug_id, plot_id, treat_para, treat_heat, cen_num, cen_pres, cen_time, cen_date, 
+                                  cen_stage, cen_loc, height, leaf_surf, shade)
+
+#counts of location data for height on plant
+hght_cnt <- ftm_loc_cnt %>% count(treat_para, treat_heat, plot_id, cen_stage, height)
+
+
+#put into wide format for calculating totals
+hght_cnt <- spread(hght_cnt, height, n, fill=0)
+hght_cnt$u <- NULL
+
+#creating column with total observed height locations for each plot, treat_heat, treat_para and stage combo
+hght_cnt$obs_totn <- hght_cnt$h + hght_cnt$l + hght_cnt$m
+
+#return to long format for calculating proportion of observations for each height
+hght_cnt <- gather(hght_cnt, height, obs_cnt, h, m, l)
+
+#calculate proportion of observations at each height for each combo of treat_para, treat_heat, plot_id and cen_stage
+hght_cnt$obs_prop <- hght_cnt$obs_cnt / hght_cnt$obs_totn
+
+#make height a factor so I can order the levels to h, m, l
+hght_cnt$height <- factor(hght_cnt$height, levels=c("h", "m", "l"))
+
+
+```
+
+
+```{r}
+#plotting proportion of observations of heigh by treat_heat, treat_para and stage
+hstage_op_bar <- ggplot(hght_cnt, aes(x=height, y=obs_prop, fill=treat_para))
+hstage_op_bar + geom_bar(stat="identity", position = "dodge" 
+)+facet_wrap(treat_heat~cen_stage)
+
+```
+
+On Joel's suggestion, I also converted my location components to numeric values, and found the mean value for each treatment, stage, and rough time frame (am vs pm). I plotted location components against each other in various combinations to see if there were any obvious correlations. I provide an example of this below, with leaf surface plotted against height on plant for plot 1. Numbers closer to 0 on the X axis indicates caterpillars are lower on the plant, while larger numbers indicate higher location on the plant. On the Y axis, smaller numbers indicate the underside of a leaf, while larger numbers indicate the upper side.  
+
+```{r, include=FALSE, echo=FALSE}
+#attempting to make location data a numeric variable by assigning values to each level
+
+#making a column with numeric value for height levels with an ifelse statement
+ftm_lng$hght_num <- ifelse(ftm_lng$height=="l", 0,
+                           ifelse(ftm_lng$height=="m", 1,
+                                  ifelse(ftm_lng$height=="h", 2, NA)))
+
+
+#making a column with numeric value for leaf surface levels with an ifelse statement
+ftm_lng$lfsrf_num <- ifelse(ftm_lng$leaf_surf=="un", 0, 
+                            ifelse(ftm_lng$leaf_surf=="ed", 1,
+                                   ifelse(ftm_lng$leaf_surf=="up", 2, NA)))
+
+
+#making a column with numeric value for shade levels with an ifelse statement
+ftm_lng$sush_num <- ifelse(ftm_lng$shade=="sh", 0,
+                           ifelse(ftm_lng$shade=="su", 1, NA))
+
+
+#remove rows with NA's in cen_time
+ftm_lng$cen_time[is.na(ftm_lng$cen_time)]<-0
+ftm_lng <- subset(ftm_lng, cen_time!=0)
+
+
+#make a column that roughly sorts cen_time into am (<12) and pm (>12) categories. Will sort more accurately
+  ##later, once temp data is included
+ftm_lng$cen_time_ampm <- ifelse(ftm_lng$cen_time < 12, "am", 
+                                ifelse(ftm_lng$cen_time >= 12, "pm", 0))
+
+
+#take mean of numeric location data for treat_para, treat_heat, plot_id and cen_stage
+
+nl_hght_sum <- summarySE(ftm_lng, measurevar = "hght_num", 
+                         groupvars = c("treat_para", "treat_heat", "plot_id", "cen_stage", 
+                                       "cen_time_ampm"),
+                         na.rm = TRUE)
+nl_hght_sum
+
+
+nl_lfsrf_sum <- summarySE(ftm_lng, measurevar = "lfsrf_num", 
+                          groupvars = c("treat_para", "treat_heat", "plot_id", "cen_stage",
+                                        "cen_time_ampm"),
+                          na.rm = TRUE)
+nl_lfsrf_sum
+
+
+nl_sush_sum <- summarySE(ftm_lng, measurevar = "sush_num", 
+                         groupvars = c("treat_para", "treat_heat", "plot_id", "cen_stage",
+                                       "cen_time_ampm"),
+                         na.rm = TRUE)
+nl_sush_sum
+
+
+
+#combine into same dataframe
+mn_locnum <- nl_hght_sum
+mn_locnum$lfsrf_num <- nl_lfsrf_sum[,7]
+mn_locnum$sush_num <- nl_sush_sum[,7]
+
+mn_locnum$lfsrf_se <- nl_lfsrf_sum[,9]
+mn_locnum$sush_se <- nl_sush_sum[,9]
+
+
+```
+
+
+```{r, echo=FALSE}
+
+#plot of mn hght_num and mn lfsrf_num by treat_hs and cen_stage
+
+#subset by plot_id
+mn_locnum_p1 <- subset(mn_locnum, plot_id=="plot1")
+mn_locnum_p2 <- subset(mn_locnum, plot_id=="plot2")
+
+#plot 1
+mn_hght_lfsrf_p1_plot <- ggplot(mn_locnum_p1, aes(x=hght_num, y=lfsrf_num, 
+                                            group=treat_para, 
+                                            color=treat_para))
+mn_hght_lfsrf_p1_plot + geom_point(aes(shape=cen_time_ampm),
+                                size=5
+)+geom_errorbar(aes(ymin = lfsrf_num-lfsrf_se, ymax = lfsrf_num+lfsrf_se)
+)+geom_errorbarh(aes(xmin = hght_num-se, xmax = hght_num+se)
+)+geom_line(size=1.2
+)+scale_color_manual(values=c("#E69F00", "black"),
+                     breaks=c("p", "np"),
+                     labels=c("P", "NP"),
+                     name="Para Trtmnt"
+)+scale_shape_manual(values=c(16, 17),
+                     breaks=c("am", "pm"),
+                     labels=c("AM", "PM"),
+                     name="Census Time"
+)+facet_wrap(treat_heat~cen_stage)
+
+
+```
+
+
+
+
+###Adding temperature data to census data
+
+The most recent thing I have been working on with this data is attempting to combine the temperature data from the data logger with the census data I have for my caterpillars. I have a date and time stamp for each caterpillar census data point, as well as that caterpillar's weed barrier treatment and where it was on the plant at each census. I should be able to take this data and match it up with the approprite temperature data taken from the thermoconductive models. However, this is proving to be challenging. The census time stamps do not match perfectly to the model time stamps, as the datalogger records the temperature only every 10 minutes. I have created an interval for each row in the datalogger dataframe, by adding the "end" time of each measurement (which is really the start of the next time step) by adding 10 minutes to each time stamp. My goal is to be able to match each census date/time stamp with the appropriate interval from the datalogger, and if the weed barrier treatment and plant height match for that census data point, extract the temperature and add it to the census dataframe. Below are some of my attempts to do this.
+
+```{r, message=FALSE, warning=FALSE}
+#attempting to match temp data from datalogger with obs loc data
+
+#load datalogger data:
+dlt_lng <- read_csv("data/temp_data/Ms-Cc_FTM_datalogger_temp_ed_lng.csv")
+
+
+#make a summary table of mean temp at each date_time stamp, by treat_hs and loc on plant
+temp_sum <- summarySE(dlt_lng, measurevar = "temp",
+                      groupvars = c("date_time_j", "treat_hs", "loc"),
+                      na.rm = TRUE)
+
+
+#rename loc values to be the same as height in ftm_lng
+temp_sum$loc <- ifelse(temp_sum$loc=="h_un_sh", "h",
+                       ifelse(temp_sum$loc=="m_un_sh", "m",
+                              ifelse(temp_sum$loc=="l_un_sh", "l", "unk")))
+
+
+
+#make a cen_date_time column for ftm_lng
+ftm_lng$cen_time_dec <- ftm_lng$cen_time/24
+ftm_lng$cen_date_time <- ftm_lng$cen_date + ftm_lng$cen_time_dec
+
+
+#attempting to make a date_time_end column, so that I have 2 columns that create a range
+  ##then I can hopefully match the cen_date_time to the range that has the temp when the census was taken
+  ##could do this by trying to match the start date_time and add the next step in the sequence, but that
+  ##seemed complicated to figure out. Instead, have just added the time interval (10 min = .007) to each  
+  ##step. This means every other step is off by .0001, because some are .0069 and some are .007. I don' think 
+  ##this will cause too many problems, though?
+
+temp_sum$date_time_end <- temp_sum$date_time_j + .007
+
+
+#attempting to match the cen_date time with the range of date_time_j and date_time_end, and pull that temp
+  ##value from the data logger. Need to match location on plant and treat_heat too
+
+test_dat <- ftm_lng
+
+```
+
+Some things that didn't work at all:
+
+```{r, eval=FALSE, echo=TRUE}
+
+#attempting to use ifelse argument--doesn't work probably because the data frames are very different sizes
+#did not work, unsurprisingly
+test_dat$temp <- ifelse(test_dat$cen_date_time >= temp_sum$date_time_end 
+                        & test_dat$cen_date_time <= temp_sum$date_time_j 
+                        & test_dat$treat_heat == temp_sum$treat_hs
+                        & test_dat$height == temp_sum$loc, temp_sum$temp, 0)
+
+
+#trying with fuzzy_join function--sort of worked, but dulicated rows a ton 
+
+#pare down temp_sum to only columns needed
+temp_sum_sel <- select(temp_sum, date_time_j, date_time_end, treat_hs, loc, temp)
+
+fuzzy_left_join(X, Y[-1], by = c("number" = "number1", "number" = "number2"), 
+                match_fun  =list(`>=`, `<=`)) %>% 
+  mutate(found = c(NA, "YES")[(!is.na(number1)) + 1]) %>% 
+  select(names(X))
+
+
+test_dat2 <- fuzzy_left_join(test_dat, temp_sum_sel, 
+                             by=c("cen_date_time" = "date_time_j", "cen_date_time" = "date_time_end"),
+                             match_fun=list(`>=`, `<=`))
+
+
+```
+
+First thing that has sort of worked--a function that at least runs and seems to be able to at least partially match the date/time stamp of the census data to the date/time interval of the datalogger data. (Not run because it takes quite a long time)
+
+```{r, eval=FALSE, include=TRUE}
+#Only thing that has worked, but it only returns a binary match response (0,1), but no info about which 
+  ##row matches what
+  ##adapted from: https://stackoverflow.com/questions/53307707/compare-multiple-columns-in-2-different-dataframes-in-r
+
+#temp1.df$new_mpg<-apply(temp1.df, 1, function(x) {
+ # temp<-temp2.df[temp2.df$Cyl==x[],] 
+  #ifelse(any(apply(temp, 1, function(y) {
+   # dplyr::between(as.numeric(x[1]),as.numeric(y[2]),as.numeric(y[3]))
+#  })),1,0)
+#})
+
+
+test_dat$match <- apply(test_dat, 1, function(x){
+  treat <- temp_sum[temp_sum$treat_hs==x[7],]
+  ifelse(any(apply(treat, 1, function(y){
+    dplyr::between(as.numeric(x[198]), as.numeric(y[1]), as.numeric(y[9]))
+  })), 1, 0)
+})
+
+
+```
+
+
+Probably my next steps are trying some other approaches to attach the temperature data to my census data, so that I can more directly test if caterpillar location differs in with temperature. This will also allow me to investigate whether caterpillars in different treatments (weed barrier, parasitization) had different behavioral responses to temperature. Joel suggested writing a model with a linear spline that could predict the temperaure for each minute between the 10 minute intervals of the datalogger. Then I could directly match the census data to the predicted temperature from the model. This might be my next approach when I return to these analyses next semester. 
 
 
 
