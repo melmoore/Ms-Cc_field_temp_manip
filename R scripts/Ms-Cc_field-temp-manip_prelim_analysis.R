@@ -567,7 +567,7 @@ mn_wadmss_plot+geom_point(size=6
 #FORMATTING DATA TO PLOT GROWTH CURVES FOR P AND NP M SEXTA (LOG(MASS) x AGE)
 ##not really curves, I guess, since I only have mass at 3rd and mass at end
 
-#convert mass_48em column to a character
+#convert mass_48em column to numeric
 ftm_cl$mass_48em <- as.numeric(ftm_cl$mass_48em)
 
 #create a column "mass_end" that combines mass columns for wandering and emergence
