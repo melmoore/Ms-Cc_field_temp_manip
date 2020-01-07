@@ -684,6 +684,236 @@ ftm_lng$cen_date_time <- ftm_lng$cen_date + ftm_lng$cen_time_dec
 temp_sum$date_time_end <- temp_sum$date_time_j + .007
 
 
+#------------------------
+
+#attempting to use a smooth spline to model temperature for each minute between the data logger recordings
+
+test_tempsum <- temp_sum
+
+#remove rows with NA in temp
+test_tempsum <- test_tempsum %>% drop_na(temp)
+
+test_spline <- with(test_tempsum, smooth.spline(date_time_j, temp))
+
+test_spline
+
+plot(test_tempsum$date_time_j, test_tempsum$temp)
+lines(smooth.spline(test_tempsum$date_time_j, test_tempsum$temp), col="red")
+
+
+
+#subset by height and treat_hs
+temp_sum_h_hs <- subset(temp_sum, loc=="h" & treat_hs=="hs")
+temp_sum_h_con <- subset(temp_sum, loc=="h" & treat_hs=="con")
+temp_sum_m_hs <- subset(temp_sum, loc=="m" & treat_hs=="hs")
+temp_sum_m_con <- subset(temp_sum, loc=="m" & treat_hs=="con")
+temp_sum_l_hs <- subset(temp_sum, loc=="l" & treat_hs=="hs")
+temp_sum_l_con <- subset(temp_sum, loc=="l" & treat_hs=="con")
+
+
+#HIGH CON
+#smooth splin for high, con subset
+ts_hcon_spl <- smooth.spline(temp_sum_h_con$date_time_j, temp_sum_h_con$temp, all.knots = TRUE)
+
+plot(temp_sum_h_con$date_time_j, temp_sum_h_con$temp)
+lines(ts_hcon_spl, col="red")
+
+#find the range of date.times for high con subset
+range(temp_sum_h_con$date_time_j)
+
+#create a sequence that has all minutes in it, not just 10 minute intervals
+all_time_hcon <- seq(200.5625, 218.3681, by=0.0007)
+
+#predict from the previous spline
+pred_temp_hcon <- predict(ts_hcon_spl, all_time_hcon)
+
+#make a dataframe from the seq of all time and the predicted temperatures
+pred_dat_hcon <- as.data.frame(pred_temp_hcon)
+
+#rename columns to all_time and pred_temp
+pred_dat_hcon <- rename(pred_dat_hcon, all_time=x, pred_temp=y)
+
+#plot predicted values and all times
+plot(pred_dat_hcon$all_time, pred_dat_hcon$pred_temp)
+
+
+#compare predicted temps to actual temps
+
+#create copy of datalogger subsetted data frame so you don't mess up column names for plotting
+comp_h_con <- temp_sum_h_con
+
+#rename column names for plotting
+comp_h_con <- rename(comp_h_con, all_time=date_time_j, pred_temp=temp)
+
+#plot preicted temp values (red) and actual values (black) by date_time
+test_plot<-ggplot(pred_dat_hcon, aes(x=all_time, y=pred_temp))
+test_plot+geom_point(color="red"
+)+geom_point(data=comp_h_con, aes(x=all_time, y=pred_temp))
+
+
+#format date columns in both temp_sum_h_con and pred_dat_hcon so they match (deal with decimal problem)
+specify_decimal <- function(x, k) trimws(format(round(x, k), nsmall=k))
+
+temp_sum_h_con$date_time_seq <- temp_sum_h_con$date_time_end -0.007 
+
+#Making date_time_seq be rounded by 3 instead of 4 to try and account for differences created by alternating
+  ##steps of original data. Not perfect, but hopefully they match ok
+temp_sum_h_con$date_time_seq <- specify_decimal(temp_sum_h_con$date_time_seq, 3)
+pred_dat_hcon$date_time_seq <- specify_decimal(pred_dat_hcon$all_time, 3)
+
+#combine pred_dat and comp_h_con to plot predicted temp values to actual values
+comp_dat_hcon <- inner_join(pred_dat_hcon, temp_sum_h_con, by="date_time_seq")
+
+#plot predicted temp values against actual temp values
+act_pred_temp_plot <- ggplot(comp_dat_hcon, aes(x=temp, y=pred_temp))
+act_pred_temp_plot+geom_point(
+)+geom_smooth(color="red")
+
+
+
+#HIGH HS
+#smooth spline for high, con subset
+ts_hhs_spl <- smooth.spline(temp_sum_h_hs$date_time_j, temp_sum_h_hs$temp, all.knots = TRUE)
+
+#find the range of date.times for high con subset
+range(temp_sum_h_hs$date_time_j)
+
+#create a sequence that has all minutes in it, not just 10 minute intervals
+all_time_hhs <- seq(200.5625, 218.3681, by=0.0007)
+
+#predict from the previous spline
+pred_temp_hhs <- predict(ts_hhs_spl, all_time_hhs)
+
+#convert pred_temp_hhs to a dataframe
+pred_dat_hhs <- as.data.frame(pred_temp_hhs)
+
+#rename columns
+pred_dat_hhs <- rename(pred_dat_hhs, all_time=x, pred_temp=y)
+
+#plot predicted temp against all time
+plot(pred_dat_hhs$all_time, pred_dat_hhs$pred_temp)
+
+
+
+
+
+
+#MIDDLE HS
+#smooth spline for mid, hs subset
+ts_mhs_spl <- smooth.spline(temp_sum_m_hs$date_time_j, temp_sum_m_hs$temp, all.knots = TRUE)
+
+#find the range of date.times for high con subset
+range(temp_sum_m_hs$date_time_j)
+
+#create a sequence that has all minutes in it, not just 10 minute intervals
+all_time_mhs <- seq(200.5625, 218.3681, by=0.0007)
+
+#predict from the previous spline
+pred_temp_mhs <- predict(ts_mhs_spl, all_time_mhs)
+
+#convert pred_temp_hhs to a dataframe
+pred_dat_mhs <- as.data.frame(pred_temp_mhs)
+
+#rename columns
+pred_dat_mhs <- rename(pred_dat_mhs, all_time=x, pred_temp=y)
+
+#plot predicted temp against all time
+plot(pred_dat_mhs$all_time, pred_dat_mhs$pred_temp)
+
+
+
+
+
+#MIDDLE CON
+#smooth spline for high, con subset
+ts_mcon_spl <- smooth.spline(temp_sum_m_con$date_time_j, temp_sum_m_con$temp, all.knots = TRUE)
+
+#find the range of date.times for high con subset
+range(temp_sum_m_con$date_time_j)
+
+#create a sequence that has all minutes in it, not just 10 minute intervals
+all_time_mcon <- seq(200.5625, 218.3681, by=0.0007)
+
+#predict from the previous spline
+pred_temp_mcon <- predict(ts_mcon_spl, all_time_mcon)
+
+#convert pred_temp_hcon to a dataframe
+pred_dat_mcon <- as.data.frame(pred_temp_mcon)
+
+#rename columns
+pred_dat_mcon <- rename(pred_dat_mcon, all_time=x, pred_temp=y)
+
+#plot predicted temp against all time
+plot(pred_dat_mcon$all_time, pred_dat_mcon$pred_temp)
+
+
+
+
+
+
+#LOW HS 
+#smooth spline for low, hs subset
+ts_lhs_spl <- smooth.spline(temp_sum_l_hs$date_time_j, temp_sum_l_hs$temp, all.knots = TRUE)
+
+#find the range of date.times for high con subset
+range(temp_sum_l_hs$date_time_j)
+
+#create a sequence that has all minutes in it, not just 10 minute intervals
+all_time_lhs <- seq(200.5625, 218.3681, by=0.0007)
+
+#predict from the previous spline
+pred_temp_lhs <- predict(ts_lhs_spl, all_time_lhs)
+
+#convert pred_temp_hcon to a dataframe
+pred_dat_lhs <- as.data.frame(pred_temp_lhs)
+
+#rename columns
+pred_dat_lhs <- rename(pred_dat_lhs, all_time=x, pred_temp=y)
+
+#plot predicted temp against all time
+plot(pred_dat_lhs$all_time, pred_dat_lhs$pred_temp)
+
+
+
+
+#LOW, CON
+
+#remove infinite or missing values in temp
+temp_sum_l_con <- drop_na(temp_sum_l_con, temp)
+
+#smooth spline for low, con subset
+ts_lcon_spl <- smooth.spline(temp_sum_l_con$date_time_j, temp_sum_l_con$temp, all.knots = TRUE)
+
+#find the range of date.times for high con subset
+range(temp_sum_l_con$date_time_j)
+
+#create a sequence that has all minutes in it, not just 10 minute intervals
+all_time_lcon <- seq(200.5625, 218.3681, by=0.0007)
+
+#predict from the previous spline
+pred_temp_lcon <- predict(ts_lcon_spl, all_time_lcon)
+
+#convert pred_temp_hcon to a dataframe
+pred_dat_lcon <- as.data.frame(pred_temp_lcon)
+
+#rename columns
+pred_dat_lcon <- rename(pred_dat_lcon, all_time=x, pred_temp=y)
+
+#plot predicted temp against all time
+plot(pred_dat_lcon$all_time, pred_dat_lcon$pred_temp)
+
+
+
+#-----------------------
+
+
+
+
+
+
+
+#-----------------------
+
 #attempting to match the cen_date time with the range of date_time_j and date_time_end, and pull that temp
   ##value from the data logger. Need to match location on plant and treat_heat too
 
@@ -718,6 +948,33 @@ test_dat$match <- apply(test_dat, 1, function(x){
   })), 1, 0)
 })
 
+
+#trying to subset test_dat and temp_sum by height and treat_hs, then run above function, but modified to put 
+ ##in temp from temp_sum instead of 1
+
+temp_sum_h_hs <- subset(temp_sum, loc=="h" & treat_hs=="hs")
+temp_sum_h_con <- subset(temp_sum, loc=="h" & treat_hs=="con")
+temp_sum_m_hs <- subset(temp_sum, loc=="m" & treat_hs=="hs")
+temp_sum_m_con <- subset(temp_sum, loc=="m" & treat_hs=="con")
+temp_sum_l_hs <- subset(temp_sum, loc=="l" & treat_hs=="hs")
+temp_sum_l_con <- subset(temp_sum, loc=="l" & treat_hs=="con")
+
+test_dat_h_hs <- subset(test_dat, height=="h" & treat_heat=="hs")
+test_dat_h_con <- subset(test_dat, height=="h" & treat_heat=="con")
+test_dat_m_hs <- subset(test_dat, height=="m" & treat_heat=="hs")
+test_dat_m_con <- subset(test_dat, height=="m" & treat_heat=="con")
+test_dat_l_hs <- subset(test_dat, height=="l" & treat_heat=="hs")
+test_dat_l_con <- subset(test_dat, height=="l" & treat_heat=="con")
+
+test_dat$mod_temp <- apply(test_dat, 1, temp_match)
+
+
+temp_match <- function(x){
+  treat <- temp_sum[temp_sum$treat_hs==x[7],]
+  ifelse(any(apply(treat, 1, function(y){
+    dplyr::between(as.numeric(x[198]), as.numeric(y[1]), as.numeric(y[9]))
+  })), y[5], 0)
+}
 
 
 
