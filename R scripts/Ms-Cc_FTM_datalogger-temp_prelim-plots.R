@@ -193,7 +193,7 @@ dlt_tmp <- na.omit(dlt_tmp)
 dlt_tmp$tc <- factor(dlt_tmp$tc)
 
 gam_temp_mod <- gam(temp ~ s(date_time_j, by=interaction(treat_hs, loc, bs="ts"))
-                   + treat_hs*loc,
+                   + s(tc, bs="re") + treat_hs*loc,
                     method="ML", data=dlt_tmp, na.action = na.omit)
 anova(gam_temp_mod)
 summary(gam_temp_mod)
