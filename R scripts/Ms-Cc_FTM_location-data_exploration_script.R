@@ -772,7 +772,7 @@ act_pred_temp_plot+geom_point(
 
 
 #HIGH HS
-#smooth spline for high, con subset
+#smooth spline for high, hs subset
 ts_hhs_spl <- smooth.spline(temp_sum_h_hs$date_time_j, temp_sum_h_hs$temp, all.knots = TRUE)
 
 #find the range of date.times for high con subset
@@ -792,6 +792,39 @@ pred_dat_hhs <- rename(pred_dat_hhs, all_time=x, pred_temp=y)
 
 #plot predicted temp against all time
 plot(pred_dat_hhs$all_time, pred_dat_hhs$pred_temp)
+
+
+#compare predicted temps to actual temps
+
+#create copy of datalogger subsetted data frame so you don't mess up column names for plotting
+comp_h_hs <- temp_sum_h_hs
+
+#rename column names for plotting
+comp_h_hs <- rename(comp_h_hs, all_time=date_time_j, pred_temp=temp)
+
+#plot preicted temp values (red) and actual values (black) by date_time
+test_plot_hhs<-ggplot(pred_dat_hhs, aes(x=all_time, y=pred_temp))
+test_plot_hhs+geom_point(color="red"
+)+geom_point(data=comp_h_hs, aes(x=all_time, y=pred_temp))
+
+
+#format date columns in both temp_sum_h_con and pred_dat_hcon so they match (deal with decimal problem)
+specify_decimal <- function(x, k) trimws(format(round(x, k), nsmall=k))
+
+temp_sum_h_hs$date_time_seq <- temp_sum_h_hs$date_time_end -0.007 
+
+#Making date_time_seq be rounded by 3 instead of 4 to try and account for differences created by alternating
+##steps of original data. Not perfect, but hopefully they match ok
+temp_sum_h_hs$date_time_seq <- specify_decimal(temp_sum_h_hs$date_time_seq, 3)
+pred_dat_hhs$date_time_seq <- specify_decimal(pred_dat_hhs$all_time, 3)
+
+#combine pred_dat and comp_h_hs to plot predicted temp values to actual values
+comp_dat_hhs <- inner_join(pred_dat_hhs, temp_sum_h_hs, by="date_time_seq")
+
+#plot predicted temp values against actual temp values
+act_pred_temphhs_plot <- ggplot(comp_dat_hhs, aes(x=temp, y=pred_temp))
+act_pred_temphhs_plot+geom_point(
+)+geom_smooth(color="red")
 
 
 
@@ -821,6 +854,40 @@ pred_dat_mhs <- rename(pred_dat_mhs, all_time=x, pred_temp=y)
 plot(pred_dat_mhs$all_time, pred_dat_mhs$pred_temp)
 
 
+#compare predicted temps to actual temps
+
+#create copy of datalogger subsetted data frame so you don't mess up column names for plotting
+comp_m_hs <- temp_sum_m_hs
+
+#rename column names for plotting
+comp_m_hs <- rename(comp_m_hs, all_time=date_time_j, pred_temp=temp)
+
+#plot preicted temp values (red) and actual values (black) by date_time
+test_plot_mhs<-ggplot(pred_dat_mhs, aes(x=all_time, y=pred_temp))
+test_plot_mhs+geom_point(color="red"
+)+geom_point(data=comp_m_hs, aes(x=all_time, y=pred_temp))
+
+
+#format date columns in both temp_sum_h_con and pred_dat_hcon so they match (deal with decimal problem)
+specify_decimal <- function(x, k) trimws(format(round(x, k), nsmall=k))
+
+temp_sum_m_hs$date_time_seq <- temp_sum_m_hs$date_time_end -0.007 
+
+#Making date_time_seq be rounded by 3 instead of 4 to try and account for differences created by alternating
+##steps of original data. Not perfect, but hopefully they match ok
+temp_sum_m_hs$date_time_seq <- specify_decimal(temp_sum_m_hs$date_time_seq, 3)
+pred_dat_mhs$date_time_seq <- specify_decimal(pred_dat_mhs$all_time, 3)
+
+#combine pred_dat and comp_h_hs to plot predicted temp values to actual values
+comp_dat_mhs <- inner_join(pred_dat_mhs, temp_sum_m_hs, by="date_time_seq")
+
+#plot predicted temp values against actual temp values
+act_pred_tempmhs_plot <- ggplot(comp_dat_mhs, aes(x=temp, y=pred_temp))
+act_pred_tempmhs_plot+geom_point(
+)+geom_smooth(color="red")
+
+
+
 
 
 
@@ -846,6 +913,38 @@ pred_dat_mcon <- rename(pred_dat_mcon, all_time=x, pred_temp=y)
 #plot predicted temp against all time
 plot(pred_dat_mcon$all_time, pred_dat_mcon$pred_temp)
 
+
+#compare predicted temps to actual temps
+
+#create copy of datalogger subsetted data frame so you don't mess up column names for plotting
+comp_m_con <- temp_sum_m_con
+
+#rename column names for plotting
+comp_m_con <- rename(comp_m_con, all_time=date_time_j, pred_temp=temp)
+
+#plot preicted temp values (red) and actual values (black) by date_time
+test_plot_mcon<-ggplot(pred_dat_mcon, aes(x=all_time, y=pred_temp))
+test_plot_mcon+geom_point(color="red"
+)+geom_point(data=comp_m_con, aes(x=all_time, y=pred_temp))
+
+
+#format date columns in both temp_sum_h_con and pred_dat_hcon so they match (deal with decimal problem)
+specify_decimal <- function(x, k) trimws(format(round(x, k), nsmall=k))
+
+temp_sum_m_con$date_time_seq <- temp_sum_m_con$date_time_end -0.007 
+
+#Making date_time_seq be rounded by 3 instead of 4 to try and account for differences created by alternating
+##steps of original data. Not perfect, but hopefully they match ok
+temp_sum_m_con$date_time_seq <- specify_decimal(temp_sum_m_con$date_time_seq, 3)
+pred_dat_mcon$date_time_seq <- specify_decimal(pred_dat_mcon$all_time, 3)
+
+#combine pred_dat and comp_h_con to plot predicted temp values to actual values
+comp_dat_mcon <- inner_join(pred_dat_mcon, temp_sum_m_con, by="date_time_seq")
+
+#plot predicted temp values against actual temp values
+act_pred_tempmcon_plot <- ggplot(comp_dat_mcon, aes(x=temp, y=pred_temp))
+act_pred_tempmcon_plot+geom_point(
+)+geom_smooth(color="red")
 
 
 
@@ -873,6 +972,38 @@ pred_dat_lhs <- rename(pred_dat_lhs, all_time=x, pred_temp=y)
 #plot predicted temp against all time
 plot(pred_dat_lhs$all_time, pred_dat_lhs$pred_temp)
 
+
+#compare predicted temps to actual temps
+
+#create copy of datalogger subsetted data frame so you don't mess up column names for plotting
+comp_l_hs <- temp_sum_l_hs
+
+#rename column names for plotting
+comp_l_hs <- rename(comp_l_hs, all_time=date_time_j, pred_temp=temp)
+
+#plot preicted temp values (red) and actual values (black) by date_time
+test_plot_lhs<-ggplot(pred_dat_lhs, aes(x=all_time, y=pred_temp))
+test_plot_lhs+geom_point(color="red"
+)+geom_point(data=comp_l_hs, aes(x=all_time, y=pred_temp))
+
+
+#format date columns in both temp_sum_h_hs and pred_dat_hhs so they match (deal with decimal problem)
+specify_decimal <- function(x, k) trimws(format(round(x, k), nsmall=k))
+
+temp_sum_l_hs$date_time_seq <- temp_sum_l_hs$date_time_end -0.007 
+
+#Making date_time_seq be rounded by 3 instead of 4 to try and account for differences created by alternating
+##steps of original data. Not perfect, but hopefully they match ok
+temp_sum_l_hs$date_time_seq <- specify_decimal(temp_sum_l_hs$date_time_seq, 3)
+pred_dat_lhs$date_time_seq <- specify_decimal(pred_dat_lhs$all_time, 3)
+
+#combine pred_dat and comp_h_hs to plot predicted temp values to actual values
+comp_dat_lhs <- inner_join(pred_dat_lhs, temp_sum_l_hs, by="date_time_seq")
+
+#plot predicted temp values against actual temp values
+act_pred_templhs_plot <- ggplot(comp_dat_lhs, aes(x=temp, y=pred_temp))
+act_pred_templhs_plot+geom_point(
+)+geom_smooth(color="red")
 
 
 
@@ -904,7 +1035,253 @@ plot(pred_dat_lcon$all_time, pred_dat_lcon$pred_temp)
 
 
 
+#compare predicted temps to actual temps
+
+#create copy of datalogger subsetted data frame so you don't mess up column names for plotting
+comp_l_con <- temp_sum_l_con
+
+#rename column names for plotting
+comp_l_con <- rename(comp_l_con, all_time=date_time_j, pred_temp=temp)
+
+#plot preicted temp values (red) and actual values (black) by date_time
+test_plot_lcon<-ggplot(pred_dat_lcon, aes(x=all_time, y=pred_temp))
+test_plot_lcon+geom_point(color="red"
+)+geom_point(data=comp_l_con, aes(x=all_time, y=pred_temp))
+
+
+#format date columns in both temp_sum_h_con and pred_dat_hcon so they match (deal with decimal problem)
+specify_decimal <- function(x, k) trimws(format(round(x, k), nsmall=k))
+
+temp_sum_l_con$date_time_seq <- temp_sum_l_con$date_time_end -0.007 
+
+#Making date_time_seq be rounded by 3 instead of 4 to try and account for differences created by alternating
+##steps of original data. Not perfect, but hopefully they match ok
+temp_sum_l_con$date_time_seq <- specify_decimal(temp_sum_l_con$date_time_seq, 3)
+pred_dat_lcon$date_time_seq <- specify_decimal(pred_dat_lcon$all_time, 3)
+
+#combine pred_dat and comp_h_con to plot predicted temp values to actual values
+comp_dat_lcon <- inner_join(pred_dat_lcon, temp_sum_l_con, by="date_time_seq")
+
+#plot predicted temp values against actual temp values
+act_pred_templcon_plot <- ggplot(comp_dat_lcon, aes(x=temp, y=pred_temp))
+act_pred_templcon_plot+geom_point(
+)+geom_smooth(color="red")
+
+
+
 #-----------------------
+
+#add temperature values predicted by smooth spline model of datalogger mean temp for each heigh and weed
+  ##barrier treatment combination
+
+#subset location data into height and weed barrier treatment combos (h con, h hs, etc)
+ftm_hhs <- subset(ftm_lng, treat_heat=="hs" & height=="h")
+ftm_hcon <- subset(ftm_lng, treat_heat=="con" & height=="h")
+ftm_mhs <- subset(ftm_lng, treat_heat=="hs" & height=="m")
+ftm_mcon <- subset(ftm_lng, treat_heat=="con" & height=="m")
+ftm_lhs <- subset(ftm_lng, treat_heat=="hs" & height=="l")
+ftm_lcon <- subset(ftm_lng, treat_heat=="con" & height=="l")
+
+
+
+#HIGH HS
+
+#use the smooth.spline model I developed earlier to predict temperatures for the time stamps of each
+  ##location census when the caterpillar was in the heat shock treatment and high on the plant
+
+#smooth spline for high, hs subset
+ts_hhs_spl <- smooth.spline(temp_sum_h_hs$date_time_j, temp_sum_h_hs$temp, all.knots = TRUE)
+
+#remove rows with NAs in cen_date_time
+ftm_hhs <- drop_na(ftm_hhs, cen_date_time)
+
+#create a vector of date times from the location data to predict temperatures for
+dt_hhs <- ftm_hhs$cen_date_time
+
+#predict from the smooth.spline model
+loc_pt_hhs <- predict(ts_hhs_spl, dt_hhs)
+
+#convert pred_temp_hhs to a dataframe
+loc_pt_hhs <- as.data.frame(loc_pt_hhs)
+
+#rename columns in loc_pt_hhs
+loc_pt_hhs <- rename(loc_pt_hhs, cen_date_time=x, pred_temp=y)
+
+#add columns from loc_pt_hhs
+ftm_hhs <- bind_cols(ftm_hhs, loc_pt_hhs)
+
+#Make pred_temp = NA for rows that have cen_date_time before data logger started recording
+ftm_hhs$pred_temp <- ifelse(ftm_hhs$cen_date < 200.56, 0, ftm_hhs$pred_temp)
+ftm_hhs$pred_temp[ftm_hhs$pred_temp==0] <-NA
+
+
+
+
+#HIGH CON
+
+#use the smooth.spline model I developed earlier to predict temperatures for the time stamps of each
+##location census when the caterpillar was in the control treatment and high on the plant
+
+#smooth spline for high, con subset
+ts_hcon_spl <- smooth.spline(temp_sum_h_con$date_time_j, temp_sum_h_con$temp, all.knots = TRUE)
+
+#remove rows with NAs in cen_date_time
+ftm_hcon <- drop_na(ftm_hcon, cen_date_time)
+
+#create a vector of date times from the location data to predict temperatures for
+dt_hcon <- ftm_hcon$cen_date_time
+
+#predict from the smooth.spline model
+loc_pt_hcon <- predict(ts_hcon_spl, dt_hcon)
+
+#convert pred_temp_hcon to a dataframe
+loc_pt_hcon <- as.data.frame(loc_pt_hcon)
+
+#rename columns in loc_pt_hcon
+loc_pt_hcon <- rename(loc_pt_hcon, cen_date_time=x, pred_temp=y)
+
+#add columns from loc_pt_hcon
+ftm_hcon <- bind_cols(ftm_hcon, loc_pt_hcon)
+
+#Make pred_temp = NA for rows that have cen_date_time before data logger started recording
+ftm_hcon$pred_temp <- ifelse(ftm_hcon$cen_date < 200.56, 0, ftm_hcon$pred_temp)
+ftm_hcon$pred_temp[ftm_hcon$pred_temp==0] <-NA
+
+
+
+#MIDDLE HEAT SHOCK
+
+#use the smooth.spline model I developed earlier to predict temperatures for the time stamps of each
+##location census when the caterpillar was in the heat shock treatment and middle of the plant
+
+#smooth spline for high, hs subset
+ts_mhs_spl <- smooth.spline(temp_sum_m_hs$date_time_j, temp_sum_m_hs$temp, all.knots = TRUE)
+
+#remove rows with NAs in cen_date_time
+ftm_mhs <- drop_na(ftm_mhs, cen_date_time)
+
+#create a vector of date times from the location data to predict temperatures for
+dt_mhs <- ftm_mhs$cen_date_time
+
+#predict from the smooth.spline model
+loc_pt_mhs <- predict(ts_mhs_spl, dt_mhs)
+
+#convert pred_temp_hhs to a dataframe
+loc_pt_mhs <- as.data.frame(loc_pt_mhs)
+
+#rename columns in loc_pt_hhs
+loc_pt_mhs <- rename(loc_pt_mhs, cen_date_time=x, pred_temp=y)
+
+#add columns from loc_pt_hhs
+ftm_mhs <- bind_cols(ftm_mhs, loc_pt_mhs)
+
+#Make pred_temp = NA for rows that have cen_date_time before data logger started recording
+ftm_mhs$pred_temp <- ifelse(ftm_mhs$cen_date < 200.56, 0, ftm_mhs$pred_temp)
+ftm_mhs$pred_temp[ftm_mhs$pred_temp==0] <-NA
+
+
+
+
+#MIDDLE CON
+
+#use the smooth.spline model I developed earlier to predict temperatures for the time stamps of each
+##location census when the caterpillar was in the control treatment and middle of the plant
+
+#smooth spline for high, con subset
+ts_mcon_spl <- smooth.spline(temp_sum_m_con$date_time_j, temp_sum_m_con$temp, all.knots = TRUE)
+
+#remove rows with NAs in cen_date_time
+ftm_mcon <- drop_na(ftm_mcon, cen_date_time)
+
+#create a vector of date times from the location data to predict temperatures for
+dt_mcon <- ftm_mcon$cen_date_time
+
+#predict from the smooth.spline model
+loc_pt_mcon <- predict(ts_mcon_spl, dt_mcon)
+
+#convert pred_temp_hcon to a dataframe
+loc_pt_mcon <- as.data.frame(loc_pt_mcon)
+
+#rename columns in loc_pt_hcon
+loc_pt_mcon <- rename(loc_pt_mcon, cen_date_time=x, pred_temp=y)
+
+#add columns from loc_pt_hcon
+ftm_mcon <- bind_cols(ftm_mcon, loc_pt_mcon)
+
+#Make pred_temp = NA for rows that have cen_date_time before data logger started recording
+ftm_mcon$pred_temp <- ifelse(ftm_mcon$cen_date < 200.56, 0, ftm_mcon$pred_temp)
+ftm_mcon$pred_temp[ftm_mcon$pred_temp==0] <-NA
+
+
+
+
+#LOW HEAT SHOCK
+
+#use the smooth.spline model I developed earlier to predict temperatures for the time stamps of each
+##location census when the caterpillar was in the heat shock treatment and low on the plant
+
+#smooth spline for high, hs subset
+ts_lhs_spl <- smooth.spline(temp_sum_l_hs$date_time_j, temp_sum_l_hs$temp, all.knots = TRUE)
+
+#remove rows with NAs in cen_date_time
+ftm_lhs <- drop_na(ftm_lhs, cen_date_time)
+
+#create a vector of date times from the location data to predict temperatures for
+dt_lhs <- ftm_lhs$cen_date_time
+
+#predict from the smooth.spline model
+loc_pt_lhs <- predict(ts_lhs_spl, dt_lhs)
+
+#convert pred_temp_hhs to a dataframe
+loc_pt_lhs <- as.data.frame(loc_pt_lhs)
+
+#rename columns in loc_pt_hhs
+loc_pt_lhs <- rename(loc_pt_lhs, cen_date_time=x, pred_temp=y)
+
+#add columns from loc_pt_hhs
+ftm_lhs <- bind_cols(ftm_lhs, loc_pt_lhs)
+
+#Make pred_temp = NA for rows that have cen_date_time before data logger started recording
+ftm_lhs$pred_temp <- ifelse(ftm_lhs$cen_date < 200.56, 0, ftm_lhs$pred_temp)
+ftm_lhs$pred_temp[ftm_lhs$pred_temp==0] <-NA
+
+
+
+#LOW CON
+
+#use the smooth.spline model I developed earlier to predict temperatures for the time stamps of each
+##location census when the caterpillar was in the control treatment and low on the plant
+
+#smooth spline for high, con subset
+ts_lcon_spl <- smooth.spline(temp_sum_l_con$date_time_j, temp_sum_l_con$temp, all.knots = TRUE)
+
+#remove rows with NAs in cen_date_time
+ftm_lcon <- drop_na(ftm_lcon, cen_date_time)
+
+#create a vector of date times from the location data to predict temperatures for
+dt_lcon <- ftm_lcon$cen_date_time
+
+#predict from the smooth.spline model
+loc_pt_lcon <- predict(ts_lcon_spl, dt_lcon)
+
+#convert pred_temp_hcon to a dataframe
+loc_pt_lcon <- as.data.frame(loc_pt_lcon)
+
+#rename columns in loc_pt_hcon
+loc_pt_lcon <- rename(loc_pt_lcon, cen_date_time=x, pred_temp=y)
+
+#add columns from loc_pt_hcon
+ftm_lcon <- bind_cols(ftm_lcon, loc_pt_lcon)
+
+#Make pred_temp = NA for rows that have cen_date_time before data logger started recording
+ftm_lcon$pred_temp <- ifelse(ftm_lcon$cen_date < 200.56, 0, ftm_lcon$pred_temp)
+ftm_lcon$pred_temp[ftm_lcon$pred_temp==0] <-NA
+
+
+
+#bind subsetted location data back into one dataframe
+
+ftm_pred <- bind_rows(ftm_hhs, ftm_hcon, ftm_mcon, ftm_mhs, ftm_lcon, ftm_lhs)
 
 
 
