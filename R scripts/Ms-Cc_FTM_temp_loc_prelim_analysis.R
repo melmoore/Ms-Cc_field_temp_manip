@@ -38,6 +38,9 @@ ftm_pt$hght_num <- ifelse(ftm_pt$height=="h", 1,
 #subset height to only high and middle, as there are very few occurences of caterpillars low on the plant
 ftm_pthm <- subset(ftm_pt, height!="l")
 
+#create separate data frames for the different plots
+ftm_pl1 <- subset(ftm_pthm, plot_id=="plot1")
+ftm_pl2 <- subset(ftm_pthm, plot_id=="plot2")
 
 
 #--------------------------
@@ -47,7 +50,7 @@ ftm_pthm <- subset(ftm_pt, height!="l")
 #analyse plots separately
 
 
-#HEIGHT
+#HEIGHT--PLOT 1
 hghtbin1_mod_full <- glm(hght_num ~ treat_para * ampm + cen_stage,
                         family = binomial,
                         data=ftm_pl1,
@@ -56,6 +59,51 @@ hghtbin1_mod_full <- glm(hght_num ~ treat_para * ampm + cen_stage,
 anova(hghtbin1_mod_full)
 summary(hghtbin1_mod_full)
 
+
+
+hghtbin1_mod_null <- glm(hght_num ~ 1,
+                         family = binomial,
+                         data=ftm_pl1,
+                         na.action=na.omit)
+
+
+hghtbin1_mod_p <- glm(hght_num ~ treat_para,
+                      family = binomial,
+                      data=ftm_pl1,
+                      na.action=na.omit)
+
+
+hghtbin1_mod_ampm <- glm(hght_num ~ ampm,
+                         family = binomial,
+                         data=ftm_pl1,
+                         na.action=na.omit)
+
+
+hghtbin1_mod_stage <- glm(hght_num ~ cen_stage,
+                          family = binomial,
+                          data=ftm_pl1,
+                          na.action=na.omit)
+
+
+
+hghtbin1_mod_int <- glm(hght_num ~ treat_para:ampm,
+                        family = binomial,
+                        data=ftm_pl1,
+                        na.action=na.omit)
+
+
+#test all fixed effects
+
+anova(hghtbin1_mod_null, hghtbin1_mod_full, hghtbin1_mod_p, hghtbin1_mod_ampm, hghtbin1_mod_int,
+      hghtbin1_mod_stage, test="Chisq")
+
+
+AIC(hghtbin1_mod_null, hghtbin1_mod_full, hghtbin1_mod_p, hghtbin1_mod_ampm, hghtbin1_mod_int,
+    hghtbin1_mod_stage)
+
+
+
+#HEIGHT--PLOT 2
 
 hghtbin2_mod_full <- glm(hght_num ~ treat_para * ampm + cen_stage,
                          family = binomial,
@@ -66,7 +114,52 @@ anova(hghtbin2_mod_full)
 summary(hghtbin2_mod_full)
 
 
-#SUN VS SHADE
+
+
+hghtbin2_mod_null <- glm(hght_num ~ 1,
+                         family = binomial,
+                         data=ftm_pl2,
+                         na.action=na.omit)
+
+
+hghtbin2_mod_p <- glm(hght_num ~ treat_para,
+                      family = binomial,
+                      data=ftm_pl2,
+                      na.action=na.omit)
+
+
+hghtbin2_mod_ampm <- glm(hght_num ~ ampm,
+                         family = binomial,
+                         data=ftm_pl2,
+                         na.action=na.omit)
+
+
+hghtbin2_mod_stage <- glm(hght_num ~ cen_stage,
+                          family = binomial,
+                          data=ftm_pl2,
+                          na.action=na.omit)
+
+
+
+hghtbin2_mod_int <- glm(hght_num ~ treat_para:ampm,
+                        family = binomial,
+                        data=ftm_pl2,
+                        na.action=na.omit)
+
+
+
+anova(hghtbin2_mod_null, hghtbin2_mod_full, hghtbin2_mod_p, hghtbin2_mod_ampm, hghtbin2_mod_int,
+      hghtbin2_mod_stage, test="Chisq")
+
+
+AIC(hghtbin2_mod_null, hghtbin2_mod_full, hghtbin2_mod_p, hghtbin2_mod_ampm, hghtbin2_mod_int,
+    hghtbin2_mod_stage)
+
+
+#----------------
+
+
+#SUN VS SHADE binomial glms
 
 #plot 1
 ftm_pl1$sh_num <- ifelse(ftm_pl1$shade=="sh", 0, 1)
@@ -79,6 +172,45 @@ shbin1_mod_full <- glm(sh_num ~ treat_para * ampm + cen_stage,
 
 anova(shbin1_mod_full)
 summary(shbin1_mod_full)
+
+
+shbin1_mod_null <- glm(sh_num ~ 1,
+                       family = binomial,
+                       data = ftm_pl1,
+                       na.action = na.omit)
+
+
+shbin1_mod_p <- glm(sh_num ~ treat_para,
+                    family = binomial,
+                    data = ftm_pl1,
+                    na.action = na.omit)
+
+
+shbin1_mod_ampm <- glm(sh_num ~ ampm,
+                       family = binomial,
+                       data = ftm_pl1,
+                       na.action = na.omit)
+
+
+shbin1_mod_int <- glm(sh_num ~ treat_para:ampm,
+                      family = binomial,
+                      data = ftm_pl1,
+                      na.action = na.omit)
+
+
+shbin1_mod_stage <- glm(sh_num ~ cen_stage,
+                        family = binomial,
+                        data = ftm_pl1,
+                        na.action = na.omit)
+
+
+#test fixed effects
+
+anova(shbin1_mod_null, shbin1_mod_full, shbin1_mod_p, shbin1_mod_ampm, shbin1_mod_int, shbin1_mod_stage,
+      test="Chisq")
+
+AIC(shbin1_mod_null, shbin1_mod_full, shbin1_mod_p, shbin1_mod_ampm, shbin1_mod_int, shbin1_mod_stage)
+
 
 
 #plot 2
@@ -94,10 +226,184 @@ anova(shbin2_mod_full)
 summary(shbin2_mod_full)
 
 
+shbin2_mod_null <- glm(sh_num ~ 1,
+                       family = binomial,
+                       data = ftm_pl2,
+                       na.action = na.omit)
+
+
+shbin2_mod_p <- glm(sh_num ~ treat_para,
+                    family = binomial,
+                    data = ftm_pl2,
+                    na.action = na.omit)
+
+
+shbin2_mod_ampm <- glm(sh_num ~ ampm,
+                       family = binomial,
+                       data = ftm_pl2,
+                       na.action = na.omit)
+
+
+shbin2_mod_int <- glm(sh_num ~ treat_para:ampm,
+                      family = binomial,
+                      data = ftm_pl2,
+                      na.action = na.omit)
+
+
+shbin2_mod_stage <- glm(sh_num ~ cen_stage,
+                        family = binomial,
+                        data = ftm_pl2,
+                        na.action = na.omit)
+
+
+#test fixed effects
+
+anova(shbin2_mod_null, shbin2_mod_full, shbin2_mod_p, shbin2_mod_ampm, shbin2_mod_int, shbin2_mod_stage,
+      test="Chisq")
+
+AIC(shbin2_mod_null, shbin2_mod_full, shbin2_mod_p, shbin2_mod_ampm, shbin2_mod_int, shbin2_mod_stage)
+
+
+#-------------------
+
+#LEAF SURFACE BINOMIAL GLM
+
+#make leaf surface numeric
+ftm_pl1$ lfsrf_num <- ifelse(ftm_pl1$leaf_surf=="up", 1,
+                             ifelse(ftm_pl1$leaf_surf=="ed", 0.5, 0))
+
+ftm_pl2$ lfsrf_num <- ifelse(ftm_pl2$leaf_surf=="up", 1,
+                             ifelse(ftm_pl2$leaf_surf=="ed", 0.5, 0))
+
+
+#remove inddividuals that were on the edge of leaf surface
+ftm_pl1 <- subset(ftm_pl1, leaf_surf!="ed")
+ftm_pl2 <- subset(ftm_pl2, leaf_surf!="ed")
+
+
+#binomial glm of leaf surface--PLOT 1
+
+lfsrfbin1_mod_full <- glm(lfsrf_num ~ treat_para * ampm + cen_stage,
+                          family = binomial,
+                          data = ftm_pl1,
+                          na.action = na.omit)
+anova(lfsrfbin1_mod_full)
+summary(lfsrfbin1_mod_full)
+
+
+
+lfsrfbin1_mod_null <- glm(lfsrf_num ~ 1,
+                          family = binomial,
+                          data = ftm_pl1,
+                          na.action = na.omit)
+
+
+lfsrfbin1_mod_p <- glm(lfsrf_num ~ treat_para,
+                       family = binomial,
+                       data = ftm_pl1,
+                       na.action = na.omit)
+
+
+lfsrfbin1_mod_ampm <- glm(lfsrf_num ~ ampm,
+                          family = binomial,
+                          data = ftm_pl1,
+                          na.action = na.omit)
+
+
+lfsrfbin1_mod_int <- glm(lfsrf_num ~ treat_para:ampm,
+                         family = binomial,
+                         data = ftm_pl1,
+                         na.action = na.omit)
+
+
+lfsrfbin1_mod_stage <- glm(lfsrf_num ~ cen_stage,
+                           family = binomial,
+                           data = ftm_pl1,
+                           na.action = na.omit)
+
+
+#test fixed effects
+
+anova(lfsrfbin1_mod_null, lfsrfbin1_mod_full, lfsrfbin1_mod_p, lfsrfbin1_mod_ampm, lfsrfbin1_mod_int,
+      lfsrfbin1_mod_stage, test="Chisq")
+
+AIC(lfsrfbin1_mod_null, lfsrfbin1_mod_full, lfsrfbin1_mod_p, lfsrfbin1_mod_ampm, lfsrfbin1_mod_int,
+    lfsrfbin1_mod_stage)
+
+
+
+#LEAF SURFACE--PLOT 2
+
+lfsrfbin2_mod_full <- glm(lfsrf_num ~ treat_para * ampm + cen_stage,
+                          family = binomial,
+                          data = ftm_pl2,
+                          na.action = na.omit)
+anova(lfsrfbin2_mod_full)
+summary(lfsrfbin2_mod_full)
+
+
+
+lfsrfbin2_mod_null <- glm(lfsrf_num ~ 1,
+                          family = binomial,
+                          data = ftm_pl2,
+                          na.action = na.omit)
+
+
+lfsrfbin2_mod_p <- glm(lfsrf_num ~ treat_para,
+                       family = binomial,
+                       data = ftm_pl2,
+                       na.action = na.omit)
+
+
+lfsrfbin2_mod_ampm <- glm(lfsrf_num ~ ampm,
+                          family = binomial,
+                          data = ftm_pl2,
+                          na.action = na.omit)
+
+
+lfsrfbin2_mod_int <- glm(lfsrf_num ~ treat_para:ampm,
+                         family = binomial,
+                         data = ftm_pl2,
+                         na.action = na.omit)
+
+
+lfsrfbin2_mod_stage <- glm(lfsrf_num ~ cen_stage,
+                           family = binomial,
+                           data = ftm_pl2,
+                           na.action = na.omit)
+
+
+#test fixed effects
+
+anova(lfsrfbin2_mod_null, lfsrfbin2_mod_full, lfsrfbin2_mod_p, lfsrfbin2_mod_ampm, lfsrfbin2_mod_int,
+      lfsrfbin2_mod_stage, test="Chisq")
+
+AIC(lfsrfbin2_mod_null, lfsrfbin2_mod_full, lfsrfbin2_mod_p, lfsrfbin2_mod_ampm, lfsrfbin2_mod_int,
+    lfsrfbin2_mod_stage)
+
+
+#--------------------
+
+#analyze pred_temp
+
+pt_mod <- lm(pred_temp ~ height * treat_heat * treat_para,
+             data=ftm_pl1,
+             na.action = na.omit)
+
+anova(pt_mod)
+summary(pt_mod)
 
 
 
 
+#-----------------------
+
+#plot shade vs parasitism treatment
+
+shade_plot <- ggplot(ftm_pl1, aes(x=treat_para, y=pred_temp, group=interaction(treat_para, shade),
+                                  fill=shade))
+shade_plot+geom_boxplot(position = "dodge"
+)+facet_wrap(ampm~cen_stage)
 
 
 
