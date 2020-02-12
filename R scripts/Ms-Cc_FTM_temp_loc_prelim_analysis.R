@@ -20,6 +20,12 @@ ftm_pt <- read_csv("data/Ms-Cc_FTM_incomp_loc_temp_pred.csv",
 View(ftm_pt)
 
 
+ftm_raw <- read_csv("data/Ms-Cc_FTM_incomp_ed-raw.csv", 
+                    col_types = cols(plot_id = col_factor(levels = c("plot1", "plot2")), 
+                                     treat_heat = col_factor(levels = c("con", "hs")), 
+                                     treat_para = col_factor(levels = c("np", "p"))))
+View(ftm_raw)
+
 #set plot theme
 theme_set(theme_classic())
 
@@ -708,11 +714,244 @@ mn_pt_hght_plot + geom_point(size=7
 
 
 
+#----------------------
+
+#interaction plots
+
+
+#sun/shade against para and cen stage--plot 1
+interaction.plot(ftm_pl1$cen_stage, ftm_pl1$treat_para, ftm_pl1$sh_num)
+
+
+#sun/shade against para and ampm--plot 1
+interaction.plot(ftm_pl1$ampm, ftm_pl1$treat_para, ftm_pl1$sh_num)
+
+
+
+
+#leaf surface against para and cen stage--plot 2
+interaction.plot(ftm_pl2$cen_stage, ftm_pl2$treat_para, ftm_pl2$lfsrf_num)
+
+
+#leaf surface against para and ampm--plot 2
+interaction.plot(ftm_pl2$ampm, ftm_pl2$treat_para, ftm_pl2$lfsrf_num)
+
+
+
+
+#height against para and cen stage--plot 2
+interaction.plot(ftm_pl2$cen_stage, ftm_pl2$treat_para, ftm_pl2$hght_num)
+
+
+#height against para and ampm--plot 2
+interaction.plot(ftm_pl2$ampm, ftm_pl2$treat_para, ftm_pl2$hght_num)
+
+
+
+#--------------------------
+
+#looking at survival from placement to 4th, and 4th to removal from field
+
+#convert NAs to 0s in appropriate columns
+ftm_raw$date_4.j[is.na(ftm_raw$date_4.j)]<-0
+ftm_raw$date_out_field.j[is.na(ftm_raw$date_out_field.j)]<-0
+
+#creating a binary column for whether an individual died before molt to 4th (1) or not (0)
+ftm_raw$died_bf4 <- ifelse(ftm_raw$date_died.j > 0 & ftm_raw$date_4.j==0, 1, 0)
+
+#creating a binary column for whether an individual died after molting to 4th and before bringing to lab
+ftm_raw$died_af4 <- ifelse(ftm_raw$date_died.j > 0 & ftm_raw$date_out_field.j==0 &
+                             ftm_raw$died_bf4==0, 1, 0)
+
+#creating a binary columnf for whether an individual died after molt to 4th and after bringing to lab
+ftm_raw$died_inlab <- ifelse(ftm_raw$date_died.j > 0 & ftm_raw$date_out_field.j > 0, 1, 0)
+
+
+
+
+#analyze survival to 4th as a binomial glm with parasitization and hs treat for each plot separately
+ftm_raw1 <- subset(ftm_raw, plot_id=="plot1")
+ftm_raw2 <- subset(ftm_raw, plot_id=="plot2")
+
+
+
+#mort before 4 for plot 1 
+mort_bf4_mod <- glm(died_bf4 ~ treat_heat * treat_para,
+                    family = "binomial",
+                    data=ftm_raw1,
+                    na.action = na.omit)
+
+summary(mort_bf4_mod)
+
+
+mort_bf4_mod_para <- glm(died_bf4 ~ treat_para,
+                      family = "binomial",
+                      data=ftm_raw1,
+                      na.action = na.omit)
+
+
+mort_bf4_mod_hs <- glm(died_bf4 ~ treat_heat,
+                       family = "binomial",
+                       data=ftm_raw1,
+                       na.action = na.omit)
+
+
+mort_bf4_mod_int <- glm(died_bf4 ~ treat_heat:treat_para,
+                        family = "binomial",
+                        data=ftm_raw1,
+                        na.action = na.omit)
+
+
+mort_bf4_mod_null <- glm(died_bf4 ~ 1,
+                      family = "binomial",
+                      data=ftm_raw1,
+                      na.action = na.omit)
+
+
+anova(mort_bf4_mod_null, mort_bf4_mod, mort_bf4_mod_hs, mort_bf4_mod_para, mort_bf4_mod_int, test="Chisq")
+anova(mort_bf4_mod_null, mort_bf4_mod, mort_bf4_mod_para, test = "Chisq")
+
+AIC(mort_bf4_mod_null, mort_bf4_mod, mort_bf4_mod_hs, mort_bf4_mod_para, mort_bf4_mod_int)
 
 
 
 
 
+#mort before 4 for plot 2 
+mort_bf4_mod2 <- glm(died_bf4 ~ treat_heat * treat_para,
+                    family = "binomial",
+                    data=ftm_raw2,
+                    na.action = na.omit)
+
+summary(mort_bf4_mod2)
+
+
+mort_bf4_mod2_para <- glm(died_bf4 ~ treat_para,
+                         family = "binomial",
+                         data=ftm_raw2,
+                         na.action = na.omit)
+
+
+mort_bf4_mod2_hs <- glm(died_bf4 ~ treat_heat,
+                       family = "binomial",
+                       data=ftm_raw2,
+                       na.action = na.omit)
+
+
+mort_bf4_mod2_int <- glm(died_bf4 ~ treat_heat:treat_para,
+                        family = "binomial",
+                        data=ftm_raw2,
+                        na.action = na.omit)
+
+
+mort_bf4_mod2_null <- glm(died_bf4 ~ 1,
+                         family = "binomial",
+                         data=ftm_raw2,
+                         na.action = na.omit)
+
+anova(mort_bf4_mod2_null, mort_bf4_mod2, mort_bf4_mod2_hs, mort_bf4_mod2_para, mort_bf4_mod2_int, test="Chisq")
+AIC(mort_bf4_mod2_null, mort_bf4_mod2, mort_bf4_mod2_hs, mort_bf4_mod2_para, mort_bf4_mod2_int)
+
+
+
+
+#mortality after 4th and before bringing back to lab, plot 1
+
+mort_af4_mod <- glm(died_af4 ~ treat_heat * treat_para,
+                    family = "binomial",
+                    data=ftm_raw1,
+                    na.action = na.omit)
+
+summary(mort_af4_mod)
+
+
+mort_af4_mod_para <- glm(died_af4 ~ treat_para,
+                         family = "binomial",
+                         data=ftm_raw1,
+                         na.action = na.omit)
+
+
+mort_af4_mod_hs <- glm(died_af4 ~ treat_heat,
+                       family = "binomial",
+                       data=ftm_raw1,
+                       na.action = na.omit)
+
+
+mort_af4_mod_int <- glm(died_af4 ~ treat_heat:treat_para,
+                        family = "binomial",
+                        data=ftm_raw1,
+                        na.action = na.omit)
+
+
+mort_af4_mod_null <- glm(died_af4 ~ 1,
+                         family = "binomial",
+                         data=ftm_raw1,
+                         na.action = na.omit)
+
+
+
+anova(mort_af4_mod_null, mort_af4_mod, mort_af4_mod_hs, mort_af4_mod_para, mort_af4_mod_int, test="Chisq")
+
+AIC(mort_af4_mod_null, mort_af4_mod, mort_af4_mod_hs, mort_af4_mod_para, mort_af4_mod_int)
+
+
+
+
+#mortality after 4th and before bringing back to lab, plot 2
+
+mort_af4_mod <- glm(died_af4 ~ treat_heat * treat_para,
+                    family = "binomial",
+                    data=ftm_raw2,
+                    na.action = na.omit)
+
+summary(mort_af4_mod)
+
+
+mort_af4_mod_para <- glm(died_af4 ~ treat_para,
+                         family = "binomial",
+                         data=ftm_raw2,
+                         na.action = na.omit)
+
+
+mort_af4_mod_hs <- glm(died_af4 ~ treat_heat,
+                       family = "binomial",
+                       data=ftm_raw2,
+                       na.action = na.omit)
+
+
+mort_af4_mod_int <- glm(died_af4 ~ treat_heat:treat_para,
+                        family = "binomial",
+                        data=ftm_raw2,
+                        na.action = na.omit)
+
+
+mort_af4_mod_null <- glm(died_af4 ~ 1,
+                         family = "binomial",
+                         data=ftm_raw2,
+                         na.action = na.omit)
+
+
+
+anova(mort_af4_mod_null, mort_af4_mod, mort_af4_mod_hs, mort_af4_mod_para, mort_af4_mod_int, test="Chisq")
+
+AIC(mort_af4_mod_null, mort_af4_mod, mort_af4_mod_hs, mort_af4_mod_para, mort_af4_mod_int)
+
+
+
+#interaction plots for mort before 4th for plot 1 
+interaction.plot(ftm_raw1$treat_heat, ftm_raw1$treat_para, ftm_raw1$died_bf4)
+
+
+#interaction plots for mort before 4th for plot 2 
+interaction.plot(ftm_raw2$treat_heat, ftm_raw2$treat_para, ftm_raw2$died_bf4)
+
+
+#interaction plots for mort after 4th for plot 1
+interaction.plot(ftm_raw1$treat_heat, ftm_raw1$treat_para, ftm_raw1$died_af4)
+
+
+#interaction plots for mort after 4th for plot 2
+interaction.plot(ftm_raw2$treat_heat, ftm_raw2$treat_para, ftm_raw2$died_af4)
 
 
 
