@@ -16,25 +16,28 @@ library(spatstat.utils)
 
 #load data
 
-ftm_lng <- read_csv("data/Ms-Cc_FTM_incomp_clean_lng.csv", 
+ftm_lng <- read_csv("data/Ms-Cc_FTM_comp_clean_lng.csv", 
                     col_types = cols(plot_id = col_factor(levels = c("plot1","plot2")),
                                      treat_heat = col_factor(levels = c("con", "hs")), 
-                                     treat_para = col_factor(levels = c("p", "np"))))
+                                     treat_para = col_factor(levels = c("p", "np")),
+                                     cen_stage = col_character()))
 View(ftm_lng)
 
 
 #load datalogger data:
 dlt_lng <- read_csv("data/temp_data/Ms-Cc_FTM_datalogger_temp_ed_lng.csv")
 
-#--------------------------
+#data cleaning--------------------------
 
-#rough data cleaning
+#fix typos in location
+lev_check <- levels(factor(ftm_lng$cen_loc))
+lev_check
 
-#subset out some incorrect loc data that will be fixed in data sheet
-ftm_lng <- subset(ftm_lng, cen_loc!="veil")
-ftm_lng <- subset(ftm_lng, cen_loc!="onbv")
-ftm_lng <- subset(ftm_lng, cen_loc!="net")
-ftm_lng <- subset(ftm_lng, cen_loc!="8:04")
+ftm_lng$cen_loc <- ifelse(ftm_lng$cen_loc=="h_ud_sh", "h_un_sh",
+                          ifelse(ftm_lng$cen_loc=="m_ud_sh", "m_un_sh",
+                                 ifelse(ftm_lng$cen_loc=="u_un_sh", "l_un_sh", ftm_lng$cen_loc)))
+
+
 
 #remove em stage (usually in cups), 6 stage and 2 stage to simplify figure (assume the 2 is a typo)
 ftm_lng <- subset(ftm_lng, cen_stage!="2" & cen_stage!="6" & cen_stage!="em")
@@ -78,7 +81,7 @@ ftm_lng$cen_date_time <- ftm_lng$cen_date + ftm_lng$cen_time_dec
 
 #----------------------
 
-#Create smooth spline models for each heigh and weed barrier treatment combo, predicting temperature for each
+#Create smooth spline models for each height and weed barrier treatment combo, predicting temperature for each
   ## minute, instead of the 10 minute intervals in the data logger. this is mostly to check that the spline 
   ##models are predicting temperature in a reasonably accurate manner for each subset of data
 
@@ -125,7 +128,7 @@ test_plot+geom_point(color="red"
 #format date columns in both temp_sum_h_con and pred_dat_hcon so they match (deal with decimal problem)
 specify_decimal <- function(x, k) trimws(format(round(x, k), nsmall=k))
 
-temp_sum_h_con$date_time_seq <- temp_sum_h_con$date_time_end -0.007 
+temp_sum_h_con$date_time_seq <- temp_sum_h_con$date_time_j -0.007 
 
 #Making date_time_seq be rounded by 3 instead of 4 to try and account for differences created by alternating
 ##steps of original data. Not perfect, but hopefully they match ok
@@ -182,7 +185,7 @@ test_plot_hhs+geom_point(color="red"
 #format date columns in both temp_sum_h_con and pred_dat_hcon so they match (deal with decimal problem)
 specify_decimal <- function(x, k) trimws(format(round(x, k), nsmall=k))
 
-temp_sum_h_hs$date_time_seq <- temp_sum_h_hs$date_time_end -0.007 
+temp_sum_h_hs$date_time_seq <- temp_sum_h_hs$date_time_j -0.007 
 
 #Making date_time_seq be rounded by 3 instead of 4 to try and account for differences created by alternating
 ##steps of original data. Not perfect, but hopefully they match ok
@@ -242,7 +245,7 @@ test_plot_mhs+geom_point(color="red"
 #format date columns in both temp_sum_h_con and pred_dat_hcon so they match (deal with decimal problem)
 specify_decimal <- function(x, k) trimws(format(round(x, k), nsmall=k))
 
-temp_sum_m_hs$date_time_seq <- temp_sum_m_hs$date_time_end -0.007 
+temp_sum_m_hs$date_time_seq <- temp_sum_m_hs$date_time_j -0.007 
 
 #Making date_time_seq be rounded by 3 instead of 4 to try and account for differences created by alternating
 ##steps of original data. Not perfect, but hopefully they match ok
@@ -302,7 +305,7 @@ test_plot_mcon+geom_point(color="red"
 #format date columns in both temp_sum_h_con and pred_dat_hcon so they match (deal with decimal problem)
 specify_decimal <- function(x, k) trimws(format(round(x, k), nsmall=k))
 
-temp_sum_m_con$date_time_seq <- temp_sum_m_con$date_time_end -0.007 
+temp_sum_m_con$date_time_seq <- temp_sum_m_con$date_time_j -0.007 
 
 #Making date_time_seq be rounded by 3 instead of 4 to try and account for differences created by alternating
 ##steps of original data. Not perfect, but hopefully they match ok
@@ -361,7 +364,7 @@ test_plot_lhs+geom_point(color="red"
 #format date columns in both temp_sum_h_hs and pred_dat_hhs so they match (deal with decimal problem)
 specify_decimal <- function(x, k) trimws(format(round(x, k), nsmall=k))
 
-temp_sum_l_hs$date_time_seq <- temp_sum_l_hs$date_time_end -0.007 
+temp_sum_l_hs$date_time_seq <- temp_sum_l_hs$date_time_j -0.007 
 
 #Making date_time_seq be rounded by 3 instead of 4 to try and account for differences created by alternating
 ##steps of original data. Not perfect, but hopefully they match ok
@@ -423,7 +426,7 @@ test_plot_lcon+geom_point(color="red"
 #format date columns in both temp_sum_h_con and pred_dat_hcon so they match (deal with decimal problem)
 specify_decimal <- function(x, k) trimws(format(round(x, k), nsmall=k))
 
-temp_sum_l_con$date_time_seq <- temp_sum_l_con$date_time_end -0.007 
+temp_sum_l_con$date_time_seq <- temp_sum_l_con$date_time_j -0.007 
 
 #Making date_time_seq be rounded by 3 instead of 4 to try and account for differences created by alternating
 ##steps of original data. Not perfect, but hopefully they match ok
@@ -658,7 +661,7 @@ ftm_pred <- bind_rows(ftm_hhs, ftm_hcon, ftm_mcon, ftm_mhs, ftm_lcon, ftm_lhs)
 
 #print data frame to csv for future use
 
-write.csv(ftm_pred, "Ms-Cc_FTM_incomp_loc_temp_pred.csv",row.names = FALSE)
+write.csv(ftm_pred, "Ms-Cc_FTM_comp_loc_temp_pred.csv",row.names = FALSE)
 
 
 
