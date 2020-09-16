@@ -134,6 +134,7 @@ hghtbin2_mod_p <- glm(hght_num ~ treat_para,
                       na.action=na.omit)
 
 
+
 hghtbin2_mod_ampm <- glm(hght_num ~ ampm,
                          family = binomial,
                          data=ftm_pl2,
@@ -768,6 +769,9 @@ ftm_raw$died_inlab <- ifelse(ftm_raw$date_died.j > 0 & ftm_raw$date_out_field.j 
 
 
 
+#combine treat_para and treat_heat into one treatment column for making comprehensive tables later on
+ftm_raw <- unite(ftm_raw, treat, treat_heat, treat_para, sep="_", remove=FALSE)
+
 
 #analyze survival to 4th as a binomial glm with parasitization and hs treat for each plot separately
 ftm_raw1 <- subset(ftm_raw, plot_id=="plot1")
@@ -952,6 +956,21 @@ interaction.plot(ftm_raw1$treat_heat, ftm_raw1$treat_para, ftm_raw1$died_af4)
 
 #interaction plots for mort after 4th for plot 2
 interaction.plot(ftm_raw2$treat_heat, ftm_raw2$treat_para, ftm_raw2$died_af4)
+
+
+
+#make a table of mortality before 4th against treat heat and treat para
+
+table(ftm_raw1$treat, ftm_raw1$died_bf4)
+table(ftm_raw2$treat, ftm_raw2$died_bf4)
+
+
+
+#make a table of mortality after 4th against treat heat and treat para
+
+table(ftm_raw1$treat, ftm_raw1$died_af4)
+table(ftm_raw2$treat, ftm_raw2$died_af4)
+
 
 
 
