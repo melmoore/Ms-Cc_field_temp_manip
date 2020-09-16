@@ -10,7 +10,7 @@ library(tidyr)
 
 #load data
 
-ftm <- read_csv("data/Ms-Cc_field_temp_manip_data_incomp_11-7-19.csv", 
+ftm <- read_csv("data/Ms-Cc_field_temp_manip_data_comp_9-8-20.csv", 
                 col_types = cols(treat_heat = col_factor(levels = c("con", "hs")), 
                                  treat_para = col_factor(levels = c("p", "np"))))
 
@@ -21,9 +21,8 @@ ftm<-subset(ftm, bug_id!=0)
 
 
 
-#-----------------------
+#Transform date columns into julian date-----------------------
 
-#Transform date columns into julian date
 
 ##Converts x into julian date
 j.date<-function(x){
@@ -45,8 +44,7 @@ lapj.date<-function(df){
 ftm<-lapj.date(ftm)
 
 
-#------------------------------
-#converting time columns to decimal time
+#converting time columns to decimal time------------------------------
 
 #Function that turns turns time (x) into a character, splits it at the :, and adds it together to get decimal time
 dec.time<-function(x) {
@@ -71,8 +69,8 @@ dec.time.col<-function(df){
 
 ftm<-dec.time.col(ftm)
 
-#------------------
-#Calculating development times
+
+#Calculating development times and wasp metrics------------------
 
 ftm$tt3 <- ftm$date_3.j - ftm$date_hatch.j
 ftm$ttw <- ftm$date_wand.j - ftm$date_hatch.j
@@ -86,7 +84,6 @@ ftm$ttem_inlab <- ftm$date_em.j - ftm$date_out_field.j
 #Calculating wasp metrics
 
 #total percent survival toemergence and eclosion (from total load)
-#won't work currently, need to dissect hosts
 ftm$ps_ld_em <- ftm$num_em / ftm$load
 ftm$ps_ld_ecl <- ftm$num_ecl / ftm$load
 
@@ -103,23 +100,22 @@ ftm$ind_fem_mass <- ftm$fem_mass / ftm$fem_ecl
 ftm$ind_male_mass <- ftm$male_mass / ftm$male_ecl
 
 
-#---------------------
+#creating a "died" sorting column---------------------
 
-#creating a "died" sorting column
 ##maybe make a more detailed sorting for those found dead and those that went missing?
 
 ftm$date_died.j[is.na(ftm$date_died.j)]<-0
 ftm$died <- ifelse(ftm$date_died.j>0, 1, 0)
 
-#-----------------------
+#creating a rough clean dataframe with dead individuals removed-----------------------
 
-#creating a rough clean dataframe with dead individuals removed
+
 ftm_cl<-subset(ftm, died==0)
 
 
-#------------------------
+#creating long data frame of census data------------------------
 
-#creating long data frame of census data--will have to do in multiple parts and merge
+#will have to do in multiple parts and merge
 
 #create long dataframe with date of census
 ftm_ldate <- gather(ftm_cl, cen_num, cen_date, 
@@ -191,9 +187,9 @@ ftm_lng <- ftm_lng %>% separate(cen_loc, c("height", "leaf_surf", "shade"), remo
 
 #write data frames to csv files
 
-write.csv(ftm, "Ms-Cc_FTM_incomp_ed-raw.csv",row.names = FALSE)
-write.csv(ftm_cl, "Ms-Cc_FTM_incomp_clean.csv",row.names = FALSE)
-write.csv(ftm_lng, "Ms-Cc_FTM_incomp_clean_lng.csv",row.names = FALSE)
+write.csv(ftm, "Ms-Cc_FTM_comp_ed-raw.csv",row.names = FALSE)
+write.csv(ftm_cl, "Ms-Cc_FTM_comp_clean.csv",row.names = FALSE)
+write.csv(ftm_lng, "Ms-Cc_FTM_comp_clean_lng.csv",row.names = FALSE)
 
 
 
